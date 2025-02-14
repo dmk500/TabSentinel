@@ -1,0 +1,54 @@
+# Node modules & dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build artifacts
+dist/
+*.crx
+*.pem
+*.zip
+
+# JetBrains / PyCharm / WebStorm / IntelliJ IDEA
+.idea/
+*.iml
+out/
+
+# VS Code settings
+.vscode/
+*.code-workspace
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+__MACOSX/
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux system files
+*~
+.npm/
+.cache/
+.Trash-*/
+
+# Logs & temp files
+*.log
+*.swp
+*.swo
+*.swn
+*.bak
+
+# Chrome extension cache
+chrome-extension/
+
+# Environment variables or secrets (if needed in the future)
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.*.local

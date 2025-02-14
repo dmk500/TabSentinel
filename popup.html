@@ -1,0 +1,76 @@
+<!--
+ TabSentinel Tab Suspender - Chrome Extension
+ -----------------------------------------
+ File: popup.html
+ Author: www.llmlounge.com
+ Created: February 2025
+
+ Description:
+ This HTML file defines the UI for the popup window, providing
+ controls for managing tab suspension settings and excluded websites.
+
+ License: MIT
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tab Suspender</title>
+    <link rel="stylesheet" href="popup.css">
+    <script src="popup.js" defer></script>
+</head>
+<body>
+<div class="container">
+    <h2>Tab Suspender</h2>
+
+    <!-- Suspend Time Input with Save Button -->
+    <div class="suspend-time-container">
+        <label class="suspend-time">
+            Suspend Time after (min):
+            <input type="number" id="suspendTime" min="1" value="5">
+        </label>
+        <button id="saveSuspendTime" class="save-time-btn">💾 Save</button>
+    </div>
+
+    <!-- Exclude Current Tab Button -->
+    <div class="buttons">
+        <button id="addCurrentTab" class="add-tab">➕ Exclude Current Tab</button>
+    </div>
+
+    <!-- Error Message Placeholder -->
+    <p id="errorMessage" class="error-message"></p>
+
+    <h3>🚫 Exclusions</h3>
+
+    <!-- Scrollable Exclusion List -->
+    <div class="scrollable-list">
+        <ul id="excludedList"></ul>
+    </div>
+
+    <!-- Bottom Buttons -->
+    <div class="bottom-buttons">
+        <button id="loadRecommended" class="load-recommended">⭐ Load Recommended</button>
+        <button id="clearExclusions" class="clear-exclusions">🗑 Clear List</button>
+    </div>
+
+    <!-- About Button -->
+    <div class="buttons">
+        <button id="aboutBtn" class="about-btn">ℹ️ About</button>
+    </div>
+</div>
+
+<!-- About Modal -->
+<div id="aboutModal" class="modal" style="display: none;">
+    <div class="popup-content">
+        <h2>About Tab Suspender</h2>
+        <p>This extension was developed by <a href="https://www.llmlounge.com" target="_blank">LLM LOUNGE</a>.</p>
+        <p>It contains no hidden functions and only performs one task: suspending inactive tabs.</p>
+        <p>Tab Suspender is completely free and open-source. You can find the full source code on
+            <a href="https://www.llmlounge.com" target="_blank">LLM LOUNGE</a>.</p>
+        <button id="closePopup">Close</button>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "TabSentinel Tab Suspender",
+  "version": "1.2",
+  "description": "Automatically suspends inactive tabs after a specified time.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "scripting",
+    "alarms",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "file://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  }
+}
