@@ -14,41 +14,36 @@
  */
 
 const suspendedTabs = new Set();
-const DEFAULT_EXCLUDED_SITES = [
-    "mail.google.com",
-    "calendar.google.com",
-    "google.com",
-    "youtube.com",
-    "spotify.com",
-    "netflix.com",
-    "zoom.us",
-    "chatgpt.com"
-];
+import {DEFAULT_CONFIG} from './config.js';
+
+const DEFAULT_EXCLUDED_SITES = DEFAULT_CONFIG.DEFAULT_EXCLUDED_SITES;
+
 
 // Create an alarm to periodically check tabs
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.alarms.create("checkTabs", { periodInMinutes: 0.5 });
+    chrome.alarms.create("checkTabs", {periodInMinutes: 0.5});
 });
 
 // Allow `popup.js` to request the list of recommended sites
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "getRecommendedSites") {
-        sendResponse({ sites: DEFAULT_EXCLUDED_SITES });
+        sendResponse({sites: DEFAULT_EXCLUDED_SITES});
     }
 });
 
 // Function to check and suspend inactive tabs
 function checkTabs() {
     chrome.storage.sync.get(["suspendTime", "excludedSites"], (data) => {
-        const SUSPEND_TIME = data.suspendTime || 5 * 60 * 1000;
+        const SUSPEND_TIME = data.suspendTime || DEFAULT_CONFIG.DEFAULT_SUSPEND_TIME;
+
         const excludedSites = data.excludedSites || [];
 
-        chrome.tabs.query({ windowType: "normal" }, (tabs) => {
+        chrome.tabs.query({windowType: "normal"}, (tabs) => {
             if (!tabs || tabs.length === 0) return; // Exit if no tabs are found
 
             let now = Date.now();
 
-            chrome.tabs.query({ active: true }, (activeTabs) => {
+            chrome.tabs.query({active: true}, (activeTabs) => {
                 let activeTabIds = activeTabs.map(tab => tab.id);
 
                 tabs.forEach(tab => {
@@ -75,7 +70,7 @@ function checkTabs() {
                         if (now - lastAccessed > SUSPEND_TIME) {
                             console.log("Suspending tab:", tab.id, tab.title);
                             chrome.scripting.executeScript({
-                                target: { tabId: tab.id },
+                                target: {tabId: tab.id},
                                 func: suspendTab,
                             }).catch(err => console.error("Error suspending tab:", err));
                         }

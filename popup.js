@@ -12,6 +12,7 @@
  *
  * License: MIT
  */
+import {DEFAULT_CONFIG} from './config.js';
 
 document.addEventListener("DOMContentLoaded", () => {
     const suspendTimeInput = document.getElementById("suspendTime");
@@ -34,7 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function saveExcludedSites(excludedSites) {
         clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
-            chrome.storage.sync.set({ excludedSites }, () => {
+            chrome.storage.sync.set({excludedSites}, () => {
                 updateExclusionList(excludedSites);
             });
         }, 500);
@@ -66,7 +67,7 @@ document.addEventListener("DOMContentLoaded", () => {
      */
     chrome.storage.sync.get(["suspendTime", "excludedSites"], (data) => {
         if (data.suspendTime) {
-            suspendTimeInput.value = data.suspendTime / 60000;
+            suspendTimeInput.value = (data.suspendTime || DEFAULT_CONFIG.DEFAULT_SUSPEND_TIME) / 60000;
         }
         if (data.excludedSites) {
             updateExclusionList(data.excludedSites);
@@ -81,7 +82,7 @@ document.addEventListener("DOMContentLoaded", () => {
     saveSuspendTimeButton.addEventListener("click", () => {
         const newTime = parseInt(suspendTimeInput.value) * 60000;
         if (!isNaN(newTime) && newTime > 0) {
-            chrome.storage.sync.set({ suspendTime: newTime }, () => {
+            chrome.storage.sync.set({suspendTime: newTime}, () => {
                 console.log("Suspend time saved:", newTime);
             });
         }
@@ -91,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
      * Adds the current active tab to the exclusion list
      */
     addCurrentTabButton.addEventListener("click", () => {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
             if (tabs.length === 0 || !tabs[0].url) {
                 return;
             }
@@ -111,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
      * Clears the exclusion list
      */
     clearExclusionsButton.addEventListener("click", () => {
-        chrome.storage.sync.set({ excludedSites: [] }, () => {
+        chrome.storage.sync.set({excludedSites: []}, () => {
             updateExclusionList([]);
         });
     });
@@ -120,7 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
      * Loads recommended sites into the exclusion list
      */
     loadRecommendedButton.addEventListener("click", () => {
-        chrome.runtime.sendMessage({ action: "getRecommendedSites" }, (response) => {
+        chrome.runtime.sendMessage({action: "getRecommendedSites"}, (response) => {
             if (!response || !response.sites) {
                 errorMessage.textContent = "Error loading recommended sites.";
                 return;
