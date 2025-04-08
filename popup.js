@@ -26,11 +26,55 @@ document.addEventListener("DOMContentLoaded", () => {
     const errorMessage = document.getElementById("errorMessage");
     const freezeAllTabsButton = document.getElementById("freezeAllTabs");
     const unfreezeAllTabsButton = document.getElementById("unfreezeAllTabs");
+    const extensionToggle = document.getElementById("extensionToggle");
+    const controlsContainer = document.getElementById("controlsContainer");
 
     suspendTimeInput.min = DEFAULT_CONFIG.MIN_SUSPEND_TIME_MINUTES;
     suspendTimeInput.max = DEFAULT_CONFIG.MAX_SUSPEND_TIME_MINUTES;
 
+    chrome.storage.sync.get(["extensionEnabled"], (data) => {
+        const enabled = data.extensionEnabled !== false;
+        extensionToggle.checked = enabled;
+        updateControlsState(enabled);
+    });
+
     let saveTimeout;
+    extensionToggle.addEventListener("change", () => {
+        const enabled = extensionToggle.checked;
+        updateControlsState(enabled);
+        chrome.storage.sync.set({extensionEnabled: enabled});
+        if (!enabled) {
+            // 🔴 Shutdown: stop timer and defrost
+            chrome.alarms.clear("checkTabs");
+
+            chrome.tabs.query({windowType: "normal"}, (tabs) => {
+                tabs.forEach(tab => {
+                    chrome.scripting.executeScript({
+                        target: {tabId: tab.id},
+                        func: () => {
+                            const overlay = document.getElementById("suspend-overlay");
+                            if (overlay) {
+                                window.location.reload();
+                            }
+                        }
+                    });
+                });
+            });
+        } else {
+            // 🟢 Switching on: start the timer again
+            chrome.alarms.create("checkTabs", {periodInMinutes: 0.5});
+        }
+    });
+
+    function updateControlsState(enabled) {
+        if (enabled) {
+            controlsContainer.classList.remove("disabled");
+            controlsContainer.querySelectorAll("button").forEach(btn => btn.disabled = false);
+        } else {
+            controlsContainer.classList.add("disabled");
+            controlsContainer.querySelectorAll("button").forEach(btn => btn.disabled = true);
+        }
+    }
 
     function saveExcludedSites(excludedSites) {
         clearTimeout(saveTimeout);
@@ -144,38 +188,53 @@ document.addEventListener("DOMContentLoaded", () => {
         chrome.storage.sync.get(["excludedSites"], (data) => {
             const excludedSites = data.excludedSites || [];
             const iconUrl = chrome.runtime.getURL('icon_bg.png');
-
             chrome.tabs.query({windowType: "normal"}, (tabs) => {
                 tabs.forEach(tab => {
                     if (!tab || !tab.id || !tab.url) return;
 
-                    let url;
+                    let parsedUrl;
                     try {
-                        url = new URL(tab.url).hostname;
+                        parsedUrl = new URL(tab.url);
                     } catch (e) {
+                        return; // некорректный URL
+                    }
+
+                    const protocol = parsedUrl.protocol;
+                    const hostname = parsedUrl.hostname;
+
+// Пропускаем запрещённые протоколы
+                    if (
+                        DEFAULT_CONFIG.DISALLOWED_PROTOCOLS.includes(protocol) ||
+                        !hostname
+                    ) {
+                        console.warn("Skipping unsupported tab:", tab.url);
                         return;
                     }
 
+
+                    const url = parsedUrl.hostname;
+                    // 🛠️ Skip active or excluded tabs
                     if (tab.active || excludedSites.includes(url)) return;
+
 
                     chrome.scripting.executeScript({
                         target: {tabId: tab.id},
                         func: (iconUrl) => {
                             if (!document.getElementById("suspend-overlay")) {
                                 document.body.innerHTML = `
-                                    <div id="suspend-overlay" style="
-                                        position: fixed;
-                                        top: 0; left: 0; width: 100%; height: 100%;
-                                        background: rgba(0, 0, 0, 0.5);
-                                        display: flex; align-items: center; justify-content: center;
-                                        flex-direction: column;
-                                        font-family: Arial, sans-serif;
-                                        text-align: center;
-                                        color: white;">
-                                        <img id="ts-logo" alt="Tab Sentinel Logo" style="width: 240px; height: auto; margin-bottom: 20px;">
-                                        <p>Click to reactivate</p>
-                                    </div>
-                                `;
+                        <div id="suspend-overlay" style="
+                            position: fixed;
+                            top: 0; left: 0; width: 100%; height: 100%;
+                            background: rgba(0, 0, 0, 0.5);
+                            display: flex; align-items: center; justify-content: center;
+                            flex-direction: column;
+                            font-family: Arial, sans-serif;
+                            text-align: center;
+                            color: white;">
+                            <img id="ts-logo" alt="Tab Sentinel Logo" style="width: 240px; height: auto; margin-bottom: 20px;">
+                            <p>Click to reactivate</p>
+                        </div>
+                    `;
                                 document.getElementById("ts-logo").src = iconUrl;
 
                                 if (!document.title.includes("💤")) {
@@ -186,7 +245,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 });
                             }
                         },
-                        args: [iconUrl]
+                        args: [chrome.runtime.getURL("icon_bg.png")]
                     });
                 });
             });
@@ -209,3 +268,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 });
+
+
+
+
+

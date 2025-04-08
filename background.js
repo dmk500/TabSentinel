@@ -33,7 +33,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // Function to check and suspend inactive tabs
 function checkTabs() {
-    chrome.storage.sync.get(["suspendTime", "excludedSites"], (data) => {
+    // chrome.storage.sync.get(["suspendTime", "excludedSites"], (data) => {
+    chrome.storage.sync.get(["extensionEnabled", "suspendTime", "excludedSites"], (data) => {
+        if (data.extensionEnabled === false) {
+            console.log("Extension is disabled. Skipping checkTabs.");
+            return;
+        }
         const SUSPEND_TIME = data.suspendTime || DEFAULT_CONFIG.DEFAULT_SUSPEND_TIME;
 
         const excludedSites = data.excludedSites || [];
@@ -47,15 +52,29 @@ function checkTabs() {
                 let activeTabIds = activeTabs.map(tab => tab.id);
 
                 tabs.forEach(tab => {
-                    if (!tab || !tab.id || !tab.url) return; // Ignore invalid tabs
+                    if (!tab.url) return;
 
-                    let url;
+                    let parsedUrl;
                     try {
-                        url = new URL(tab.url).hostname;
+                        parsedUrl = new URL(tab.url);
                     } catch (e) {
-                        console.warn("Failed to process URL, ignoring tab:", tab);
+                        return; // Некорректный URL — выходим
+                    }
+
+                    const protocol = parsedUrl.protocol;
+                    const hostname = parsedUrl.hostname;
+
+                    if (
+                        DEFAULT_CONFIG.DISALLOWED_PROTOCOLS.includes(protocol) ||
+                        !hostname
+                    ) {
+                        console.warn("Skipping unsupported tab:", tab.url);
                         return;
                     }
+
+
+                    const url = parsedUrl.hostname;
+
 
                     // Skip tabs that meet exclusion criteria
                     if (activeTabIds.includes(tab.id) || excludedSites.includes(url) || suspendedTabs.has(tab.id) || !isValidURL(tab.url)) {
@@ -85,8 +104,11 @@ function checkTabs() {
 
 // Validate if a URL can be suspended
 function isValidURL(url) {
-    return url && !url.startsWith("chrome://") && !url.startsWith("file://") && !url.startsWith("edge://");
+    return url && !url.startsWith("chrome://") && !url.startsWith("file://") &&
+        !url.startsWith("edge://") && !url.startsWith("chrome-extension://") &&
+        !url.startsWith("about:");
 }
+
 
 // Function to suspend a tab
 function suspendTab(iconUrl) {
@@ -118,22 +140,12 @@ function suspendTab(iconUrl) {
 }
 
 // Listen for alarm events to check tabs periodically
-chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === "checkTabs") {
-        checkTabs();
-    }
-});
-
-// Load excluded titles from storage
-chrome.storage.sync.get(["suspendTime", "excludedSites", "excludedTitles"], (data) => {
-    const excludedTitles = data.excludedTitles || [];
-
-    tabs.forEach(tab => {
-        let url = new URL(tab.url).hostname;
-        let title = tab.title.toLowerCase();
-
-        if (excludedTitles.some(t => title.includes(t.toLowerCase()))) {
+chrome.alarms.onAlarm.addListener(() => {
+    chrome.storage.sync.get("extensionEnabled", (data) => {
+        if (data.extensionEnabled === false) {
+            console.log("Extension is disabled. Skipping alarm check.");
             return;
         }
+        checkTabs();
     });
 });

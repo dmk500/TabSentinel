@@ -1,64 +1,80 @@
-# 🚀 TabSentinel - Chrome Extension
+# TabSentinel - Chrome Extension
 
-**Automatically suspend inactive tabs to save memory & improve performance**
+**TabSentinel is a Chrome extension that automatically suspends inactive tabs to help reduce memory usage and improve browser performance.**
 
 ![TabSentinel Banner](https://www.llmlounge.com/tabsentinel/tabsentinel.jpg)
 
-## 📌 About
+## Overview
 
-TabSentinel is a lightweight **Chrome extension** that automatically suspends inactive tabs after a set time, helping you free up memory and keep your browser running smoothly.
+TabSentinel is a lightweight and user-friendly extension designed to automatically suspend inactive tabs after a specified period. This helps improve system performance and resource efficiency while giving users full control over tab behavior.
 
-🔹 **Reduce RAM & CPU usage**  
-🔹 **Customize suspend time**  
-🔹 **Exclude specific websites**  
-🔹 **View suspended tab count in the popup**  
-🔹 **Easy-to-use popup interface**
+### Key Features
 
-📢 **Author:** Developed by [www.llmlounge.com](https://www.llmlounge.com/)
+- Customizable suspend timeout (default 60 minutes)
+- Exclusion list for websites that should never be suspended
+- "Freeze All / Unfreeze All" actions from the popup interface
+- Global on/off toggle with automatic unfreezing
+- Transparent overlay with reactivation click
+- Configuration stored in persistent Chrome storage
+- Clean and responsive user interface
 
 ---
 
-## 🛠 Installation
+## Installation
 
-### 1️⃣ **From Chrome Web Store (Recommended)**
+### From Chrome Web Store
 
-🔹 [Install TabSentinel from the Chrome Web Store](https://chromewebstore.google.com/detail/flhkincklolocahijdbecbmlkdnjpmhc?utm_source=item-share-cb)
+[Install TabSentinel from the Chrome Web Store](https://chromewebstore.google.com/detail/flhkincklolocahijdbecbmlkdnjpmhc?utm_source=item-share-cb)
 
-### 2️⃣ **Manual Installation (Developer Mode)**
+### Manual Installation (Developer Mode)
 
 1. Download the source code.
-2. Open `chrome://extensions/` in your Chrome browser.
-3. Enable **Developer Mode** (toggle in the top right corner).
-4. Click **Load Unpacked** and select the downloaded folder.
-5. The extension will now be available for use!
+2. Open `chrome://extensions/` in Google Chrome.
+3. Enable **Developer Mode** using the toggle at the top right.
+4. Click **Load Unpacked** and select the folder with the source code.
+5. The extension will appear in your toolbar.
 
 ---
 
-## 🆕 Changelog (Version 1.5)
-✅ Freeze Unfreeze buttons
+## Changelog
 
-## 🆕 Changelog (Version 1.4)
-✅ Fixed tab suspension timing bugs  
-✅ Config file added: default time & site exclusions moved to `config.js`
-✅ Fixed bug where suspend time was ignored
+### Version 1.6
 
-## 🆕 Changelog (Version 1.3)
-✅ **Added tab suspension status indicator**  
-✅ **Improved UI elements (compact buttons, proper alignment)**  
-✅ **Optimized Chrome storage interactions with async/await**  
-✅ **Fixed tab suspension timing bugs**
+- Added global on/off toggle in popup
+- Disabled all UI controls when extension is off
+- Automatically unfreezes all suspended tabs when disabled
+- Tooltip added to clarify toggle function
+- Minor UI improvements and cleanup
+
+### Version 1.5
+
+- Added "Freeze All" and "Unfreeze All" actions
+- Improved suspension overlay and visuals
+
+### Version 1.4
+
+- Moved configuration settings to `config.js`
+- Fixed issues with suspend time not applying correctly
+
+### Version 1.3
+
+- Introduced tab suspension indicator
+- Optimized UI layout and Chrome storage interactions
+- Bug fixes for timing logic
 
 ---
-## ⚖️ License
+
+## License
 
 This extension is licensed under the **Creative Commons BY-NC 4.0** license.  
-**Free for personal use only. Commercial use is strictly prohibited.**
+**Free for personal use only. Commercial use is not permitted.**
 
-For more details, see: [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/)
-
+More information: [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/)
 
 ---
 
-## 📧 Support
+## Support
 
-For feedback, issues, or suggestions, please contact us at [support@llmlounge.com](mailto:support@llmlounge.com).
+For questions, issues, or feature requests, please contact: [support@llmlounge.com](mailto:support@llmlounge.com)
+"""
+

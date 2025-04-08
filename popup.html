@@ -24,40 +24,46 @@
 <body>
 <div class="container">
     <h2>Tab Suspender</h2>
-
-    <!-- Suspend Time Input with Save Button -->
-    <div class="suspend-time-container">
-        <label class="suspend-time">
-            Suspend Time after (min):
-            <input type="number" id="suspendTime" placeholder="Loading...">
-        </label>
-    </div>
-    <div class="bottom-buttons">
-        <button id="freezeAllTabs" class="load-recommended">🔒 Freeze All</button>
-        <button id="unfreezeAllTabs" class="clear-exclusions">🔓 Unfreeze All</button>
-    </div>
-
-    <!-- Exclude Current Tab Button -->
-    <div class="buttons">
-        <button id="addCurrentTab" class="add-tab">➕ Exclude Current Tab</button>
+    <div class="control-row">
+        <label for="suspendTime">Suspend Time after (min):</label>
+        <input type="number" id="suspendTime" min="1">
+        <div class="tooltip">
+            <label class="switch">
+                <input type="checkbox" id="extensionToggle">
+                <span class="slider round"></span>
+            </label>
+            <span class="tooltiptext">Enable or disable Tab Sentinel</span>
+        </div>
     </div>
 
-    <!-- Error Message Placeholder -->
-    <p id="errorMessage" class="error-message"></p>
 
-    <h3>🚫 Exclusions</h3>
+    <div id="controlsContainer">
+        <div class="bottom-buttons">
+            <button id="freezeAllTabs" class="load-recommended">🔒 Freeze All</button>
+            <button id="unfreezeAllTabs" class="clear-exclusions">🔓 Unfreeze All</button>
+        </div>
 
-    <!-- Scrollable Exclusion List -->
-    <div class="scrollable-list">
-        <ul id="excludedList"></ul>
+        <!-- Exclude Current Tab Button -->
+        <div class="buttons">
+            <button id="addCurrentTab" class="add-tab">➕ Exclude Current Tab</button>
+        </div>
+
+        <!-- Error Message Placeholder -->
+        <p id="errorMessage" class="error-message"></p>
+
+        <h3>🚫 Exclusions</h3>
+
+        <!-- Scrollable Exclusion List -->
+        <div class="scrollable-list">
+            <ul id="excludedList"></ul>
+        </div>
+
+        <!-- Bottom Buttons -->
+        <div class="bottom-buttons">
+            <button id="loadRecommended" class="load-recommended">⭐ Load Recommended</button>
+            <button id="clearExclusions" class="clear-exclusions">🗑 Clear List</button>
+        </div>
     </div>
-
-    <!-- Bottom Buttons -->
-    <div class="bottom-buttons">
-        <button id="loadRecommended" class="load-recommended">⭐ Load Recommended</button>
-        <button id="clearExclusions" class="clear-exclusions">🗑 Clear List</button>
-    </div>
-
     <!-- About Button -->
     <div class="buttons">
         <button id="aboutBtn" class="about-btn">ℹ️ About</button>
