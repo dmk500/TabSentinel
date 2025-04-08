@@ -72,6 +72,8 @@ function checkTabs() {
                             chrome.scripting.executeScript({
                                 target: {tabId: tab.id},
                                 func: suspendTab,
+                                args: [chrome.runtime.getURL('icon_bg.png')],
+
                             }).catch(err => console.error("Error suspending tab:", err));
                         }
                     });
@@ -87,23 +89,23 @@ function isValidURL(url) {
 }
 
 // Function to suspend a tab
-function suspendTab() {
+function suspendTab(iconUrl) {
     if (!document.getElementById("suspend-overlay")) {
         document.body.innerHTML = `
             <div id="suspend-overlay" style="
-                position: fixed; 
+                position: fixed;
                 top: 0; left: 0; width: 100%; height: 100%;
-                background: rgba(0, 0, 0, 0.5);
+                background: rgba(0, 0, 0, 0.8);
                 display: flex; align-items: center; justify-content: center;
                 flex-direction: column;
                 font-family: Arial, sans-serif;
                 text-align: center;
-                color: white;
-            ">
-                <h1 style="font-size: 36px;">💤</h1>
+                color: white;">
+                <img src="${iconUrl}" alt="Tab Sentinel Logo" style="width: 240px; height: auto; margin-bottom: 20px;">
                 <p>Click to reactivate</p>
             </div>
         `;
+
 
         if (!document.title.includes("💤")) {
             document.title = "💤 " + document.title.replace(/💤/g, "").trim();

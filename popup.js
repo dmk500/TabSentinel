@@ -14,7 +14,6 @@
  */
 import {DEFAULT_CONFIG} from './config.js';
 
-
 document.addEventListener("DOMContentLoaded", () => {
     const suspendTimeInput = document.getElementById("suspendTime");
     const addCurrentTabButton = document.getElementById("addCurrentTab");
@@ -27,15 +26,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const errorMessage = document.getElementById("errorMessage");
     const freezeAllTabsButton = document.getElementById("freezeAllTabs");
     const unfreezeAllTabsButton = document.getElementById("unfreezeAllTabs");
+
     suspendTimeInput.min = DEFAULT_CONFIG.MIN_SUSPEND_TIME_MINUTES;
     suspendTimeInput.max = DEFAULT_CONFIG.MAX_SUSPEND_TIME_MINUTES;
 
     let saveTimeout;
 
-    /**
-     * Saves the exclusion list with a debounce effect
-     * @param {Array} excludedSites - List of excluded sites
-     */
     function saveExcludedSites(excludedSites) {
         clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
@@ -45,10 +41,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 500);
     }
 
-    /**
-     * Updates the exclusion list UI
-     * @param {Array} excludedSites - List of excluded sites
-     */
     function updateExclusionList(excludedSites) {
         excludedSites.sort();
         excludedList.innerHTML = "";
@@ -66,23 +58,18 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    /**
-     * Loads saved settings
-     */
     chrome.storage.sync.get(["suspendTime", "excludedSites"], (data) => {
         const suspendMs = data.suspendTime ?? DEFAULT_CONFIG.DEFAULT_SUSPEND_TIME;
         suspendTimeInput.value = suspendMs / 60000;
 
-        if (data.excludedSites) {
-            updateExclusionList(data.excludedSites);
-        } else {
-            errorMessage.textContent = "Error loading exclusion list.";
+        let excludedSites = data.excludedSites;
+        if (!Array.isArray(excludedSites) || excludedSites.length === 0) {
+            excludedSites = [...DEFAULT_CONFIG.DEFAULT_EXCLUDED_SITES];
+            chrome.storage.sync.set({excludedSites});
         }
-    });
 
-    /**
-     * Saves the suspend time value
-     */
+        updateExclusionList(excludedSites);
+    });
 
     suspendTimeInput.addEventListener("input", () => {
         let value = parseInt(suspendTimeInput.value);
@@ -98,15 +85,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-
-    /**
-     * Adds the current active tab to the exclusion list
-     */
     addCurrentTabButton.addEventListener("click", () => {
         chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-            if (tabs.length === 0 || !tabs[0].url) {
-                return;
-            }
+            if (tabs.length === 0 || !tabs[0].url) return;
             let url = new URL(tabs[0].url).hostname;
 
             chrome.storage.sync.get(["excludedSites"], (data) => {
@@ -119,18 +100,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    /**
-     * Clears the exclusion list
-     */
     clearExclusionsButton.addEventListener("click", () => {
         chrome.storage.sync.set({excludedSites: []}, () => {
             updateExclusionList([]);
         });
     });
 
-    /**
-     * Loads recommended sites into the exclusion list
-     */
     loadRecommendedButton.addEventListener("click", () => {
         chrome.runtime.sendMessage({action: "getRecommendedSites"}, (response) => {
             if (!response || !response.sites) {
@@ -151,23 +126,14 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    /**
-     * Opens the "About" modal
-     */
     aboutButton.addEventListener("click", () => {
         aboutModal.style.display = "block";
     });
 
-    /**
-     * Closes the "About" modal
-     */
     closePopup.addEventListener("click", () => {
         aboutModal.style.display = "none";
     });
 
-    /**
-     * Closes the modal when clicking outside of it
-     */
     window.addEventListener("click", (event) => {
         if (event.target === aboutModal) {
             aboutModal.style.display = "none";
@@ -177,6 +143,7 @@ document.addEventListener("DOMContentLoaded", () => {
     freezeAllTabsButton.addEventListener("click", () => {
         chrome.storage.sync.get(["excludedSites"], (data) => {
             const excludedSites = data.excludedSites || [];
+            const iconUrl = chrome.runtime.getURL('icon_bg.png');
 
             chrome.tabs.query({windowType: "normal"}, (tabs) => {
                 tabs.forEach(tab => {
@@ -189,27 +156,28 @@ document.addEventListener("DOMContentLoaded", () => {
                         return;
                     }
 
-                    // Пропускаем активные и исключённые
                     if (tab.active || excludedSites.includes(url)) return;
 
                     chrome.scripting.executeScript({
                         target: {tabId: tab.id},
-                        func: () => {
+                        func: (iconUrl) => {
                             if (!document.getElementById("suspend-overlay")) {
                                 document.body.innerHTML = `
-                                <div id="suspend-overlay" style="
-                                    position: fixed;
-                                    top: 0; left: 0; width: 100%; height: 100%;
-                                    background: rgba(0, 0, 0, 0.5);
-                                    display: flex; align-items: center; justify-content: center;
-                                    flex-direction: column;
-                                    font-family: Arial, sans-serif;
-                                    text-align: center;
-                                    color: white;">
-                                    <h1 style="font-size: 36px;">💤</h1>
-                                    <p>Click to reactivate</p>
-                                </div>
-                            `;
+                                    <div id="suspend-overlay" style="
+                                        position: fixed;
+                                        top: 0; left: 0; width: 100%; height: 100%;
+                                        background: rgba(0, 0, 0, 0.5);
+                                        display: flex; align-items: center; justify-content: center;
+                                        flex-direction: column;
+                                        font-family: Arial, sans-serif;
+                                        text-align: center;
+                                        color: white;">
+                                        <img id="ts-logo" alt="Tab Sentinel Logo" style="width: 240px; height: auto; margin-bottom: 20px;">
+                                        <p>Click to reactivate</p>
+                                    </div>
+                                `;
+                                document.getElementById("ts-logo").src = iconUrl;
+
                                 if (!document.title.includes("💤")) {
                                     document.title = "💤 " + document.title.replace(/💤/g, "").trim();
                                 }
@@ -217,7 +185,8 @@ document.addEventListener("DOMContentLoaded", () => {
                                     window.location.reload();
                                 });
                             }
-                        }
+                        },
+                        args: [iconUrl]
                     });
                 });
             });
@@ -239,5 +208,4 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
     });
-
 });

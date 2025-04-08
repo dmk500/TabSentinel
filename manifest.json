@@ -10,11 +10,24 @@
     "alarms",
     "activeTab"
   ],
-  "host_permissions": ["https://*/*", "http://*/*"],
+  "host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icon_bg.png"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": "icon.png"
