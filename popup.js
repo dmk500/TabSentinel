@@ -14,9 +14,9 @@
  */
 import {DEFAULT_CONFIG} from './config.js';
 
+
 document.addEventListener("DOMContentLoaded", () => {
     const suspendTimeInput = document.getElementById("suspendTime");
-    const saveSuspendTimeButton = document.getElementById("saveSuspendTime");
     const addCurrentTabButton = document.getElementById("addCurrentTab");
     const clearExclusionsButton = document.getElementById("clearExclusions");
     const loadRecommendedButton = document.getElementById("loadRecommended");
@@ -25,6 +25,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const aboutModal = document.getElementById("aboutModal");
     const closePopup = document.getElementById("closePopup");
     const errorMessage = document.getElementById("errorMessage");
+    const freezeAllTabsButton = document.getElementById("freezeAllTabs");
+    const unfreezeAllTabsButton = document.getElementById("unfreezeAllTabs");
+    suspendTimeInput.min = DEFAULT_CONFIG.MIN_SUSPEND_TIME_MINUTES;
+    suspendTimeInput.max = DEFAULT_CONFIG.MAX_SUSPEND_TIME_MINUTES;
 
     let saveTimeout;
 
@@ -66,9 +70,9 @@ document.addEventListener("DOMContentLoaded", () => {
      * Loads saved settings
      */
     chrome.storage.sync.get(["suspendTime", "excludedSites"], (data) => {
-        if (data.suspendTime) {
-            suspendTimeInput.value = (data.suspendTime || DEFAULT_CONFIG.DEFAULT_SUSPEND_TIME) / 60000;
-        }
+        const suspendMs = data.suspendTime ?? DEFAULT_CONFIG.DEFAULT_SUSPEND_TIME;
+        suspendTimeInput.value = suspendMs / 60000;
+
         if (data.excludedSites) {
             updateExclusionList(data.excludedSites);
         } else {
@@ -79,14 +83,21 @@ document.addEventListener("DOMContentLoaded", () => {
     /**
      * Saves the suspend time value
      */
-    saveSuspendTimeButton.addEventListener("click", () => {
-        const newTime = parseInt(suspendTimeInput.value) * 60000;
-        if (!isNaN(newTime) && newTime > 0) {
-            chrome.storage.sync.set({suspendTime: newTime}, () => {
-                console.log("Suspend time saved:", newTime);
-            });
+
+    suspendTimeInput.addEventListener("input", () => {
+        let value = parseInt(suspendTimeInput.value);
+        if (
+            isNaN(value) ||
+            value < DEFAULT_CONFIG.MIN_SUSPEND_TIME_MINUTES ||
+            value > DEFAULT_CONFIG.MAX_SUSPEND_TIME_MINUTES
+        ) {
+            value = DEFAULT_CONFIG.DEFAULT_SUSPEND_TIME / 60000;
         }
+        chrome.storage.sync.set({suspendTime: value * 60000}, () => {
+            console.log("Auto-saved suspend time:", value, "minutes");
+        });
     });
+
 
     /**
      * Adds the current active tab to the exclusion list
@@ -162,4 +173,71 @@ document.addEventListener("DOMContentLoaded", () => {
             aboutModal.style.display = "none";
         }
     });
+
+    freezeAllTabsButton.addEventListener("click", () => {
+        chrome.storage.sync.get(["excludedSites"], (data) => {
+            const excludedSites = data.excludedSites || [];
+
+            chrome.tabs.query({windowType: "normal"}, (tabs) => {
+                tabs.forEach(tab => {
+                    if (!tab || !tab.id || !tab.url) return;
+
+                    let url;
+                    try {
+                        url = new URL(tab.url).hostname;
+                    } catch (e) {
+                        return;
+                    }
+
+                    // Пропускаем активные и исключённые
+                    if (tab.active || excludedSites.includes(url)) return;
+
+                    chrome.scripting.executeScript({
+                        target: {tabId: tab.id},
+                        func: () => {
+                            if (!document.getElementById("suspend-overlay")) {
+                                document.body.innerHTML = `
+                                <div id="suspend-overlay" style="
+                                    position: fixed;
+                                    top: 0; left: 0; width: 100%; height: 100%;
+                                    background: rgba(0, 0, 0, 0.5);
+                                    display: flex; align-items: center; justify-content: center;
+                                    flex-direction: column;
+                                    font-family: Arial, sans-serif;
+                                    text-align: center;
+                                    color: white;">
+                                    <h1 style="font-size: 36px;">💤</h1>
+                                    <p>Click to reactivate</p>
+                                </div>
+                            `;
+                                if (!document.title.includes("💤")) {
+                                    document.title = "💤 " + document.title.replace(/💤/g, "").trim();
+                                }
+                                document.getElementById("suspend-overlay").addEventListener("click", () => {
+                                    window.location.reload();
+                                });
+                            }
+                        }
+                    });
+                });
+            });
+        });
+    });
+
+    unfreezeAllTabsButton.addEventListener("click", () => {
+        chrome.tabs.query({windowType: "normal"}, (tabs) => {
+            tabs.forEach(tab => {
+                chrome.scripting.executeScript({
+                    target: {tabId: tab.id},
+                    func: () => {
+                        const overlay = document.getElementById("suspend-overlay");
+                        if (overlay) {
+                            window.location.reload();
+                        }
+                    }
+                });
+            });
+        });
+    });
+
 });

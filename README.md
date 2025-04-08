@@ -34,21 +34,21 @@ TabSentinel is a lightweight **Chrome extension** that automatically suspends in
 
 ---
 
-## 🆕 Changelog (Version 1.4)
+## 🆕 Changelog (Version 1.5)
+✅ Freeze Unfreeze buttons
 
+## 🆕 Changelog (Version 1.4)
 ✅ Fixed tab suspension timing bugs  
 ✅ Config file added: default time & site exclusions moved to `config.js`
 ✅ Fixed bug where suspend time was ignored
 
 ## 🆕 Changelog (Version 1.3)
-
 ✅ **Added tab suspension status indicator**  
 ✅ **Improved UI elements (compact buttons, proper alignment)**  
 ✅ **Optimized Chrome storage interactions with async/await**  
 ✅ **Fixed tab suspension timing bugs**
 
 ---
-
 ## ⚖️ License
 
 This extension is licensed under the **Creative Commons BY-NC 4.0** license.  

@@ -1,5 +1,7 @@
 export const DEFAULT_CONFIG = {
-    DEFAULT_SUSPEND_TIME: 60 * 60000, // 60 минут в миллисекундах
+    DEFAULT_SUSPEND_TIME: 60 * 60000,       // 60 minutes
+    MIN_SUSPEND_TIME_MINUTES: 5,            // min 5 minutes
+    MAX_SUSPEND_TIME_MINUTES: 1440,         // max 24 minutes
     DEFAULT_EXCLUDED_SITES: [
         "mail.google.com",
         "calendar.google.com",
