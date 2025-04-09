@@ -78,3 +78,37 @@ More information: [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/
 For questions, issues, or feature requests, please contact: [support@llmlounge.com](mailto:support@llmlounge.com)
 """
 
+---
+
+## Resources & Links
+
+- 🛒 **Chrome Web Store**:  
+  [TabSentinel on Chrome Web Store](https://chromewebstore.google.com/detail/tabsentinel-tab-suspender/flhkincklolocahijdbecbmlkdnjpmhc)
+
+- 🔐 **Privacy Policy**:  
+  [https://www.llmlounge.com/privacy.html](https://www.llmlounge.com/privacy.html)
+
+- 📄 **About TabSentinel** (in extension UI):  
+  Open the extension popup and click **ℹ️ About**
+
+- 💻 **Source Code**:  
+  You're here! This repository contains the full open-source code.
+
+---
+
+## 🔐 Privacy Statement
+
+TabSentinel does **not collect**, **store**, or **transmit** any personal information.  
+All settings are stored **locally** in your browser using Chrome's `storage.sync` API.  
+There are **no tracking scripts**, no analytics, and no third-party integrations.
+
+---
+
+## 🛠 Built With
+
+- Manifest V3
+- Chrome Extension APIs
+- JavaScript (ES6 modules)
+- HTML / CSS (popup UI)
+
+---
