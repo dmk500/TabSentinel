@@ -173,3 +173,6 @@
   min-width: 22px;
   height: 22px;
 }
+.right-align {
+  text-align: right;
+}

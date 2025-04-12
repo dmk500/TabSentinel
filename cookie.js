@@ -1,4 +1,4 @@
-import { classifyCookies } from './cookieClassifier.js';
+import {classifyCookies} from './cookieClassifier.js';
 
 let allGroupedCookies = [];
 let currentType = "essential";
@@ -29,13 +29,13 @@ function domainMatches(cookieDomain, pageHost) {
 
 // Get cookies and extract embedded domains from the page
 function loadAndClassifyCookies() {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
         const tab = tabs[0];
         const url = new URL(tab.url);
         const host = url.hostname;
 
         chrome.scripting.executeScript({
-            target: { tabId: tab.id },
+            target: {tabId: tab.id},
             func: () => {
                 const domains = new Set();
                 ['src', 'href', 'action'].forEach(attr => {
@@ -44,7 +44,8 @@ function loadAndClassifyCookies() {
                             const val = el.getAttribute(attr);
                             const url = new URL(val, document.baseURI);
                             if (url.hostname !== location.hostname) domains.add(url.hostname);
-                        } catch (_) {}
+                        } catch (_) {
+                        }
                     });
                 });
                 if (performance.getEntriesByType) {
@@ -52,7 +53,8 @@ function loadAndClassifyCookies() {
                         try {
                             const url = new URL(entry.name);
                             if (url.hostname !== location.hostname) domains.add(url.hostname);
-                        } catch (_) {}
+                        } catch (_) {
+                        }
                     });
                 }
                 return Array.from(domains);
@@ -86,7 +88,7 @@ function renderCurrentTabCookies(rawCookies, host, embeddedHosts) {
             const normalizedDomain = domain.replace(/^\./, "");
 
             if (domainMatches(domain, host)) {
-                if (!main[domain]) main[domain] = { domain, cookies: [] };
+                if (!main[domain]) main[domain] = {domain, cookies: []};
                 main[domain].cookies.push(c);
             } else if (
                 embeddedSet.has(normalizedDomain) ||
@@ -95,7 +97,7 @@ function renderCurrentTabCookies(rawCookies, host, embeddedHosts) {
                     normalizedDomain === ed || normalizedDomain.endsWith("." + ed)
                 )
             ) {
-                if (!embedded[domain]) embedded[domain] = { domain, cookies: [] };
+                if (!embedded[domain]) embedded[domain] = {domain, cookies: []};
                 embedded[domain].cookies.push(c);
             }
         });
@@ -132,8 +134,11 @@ function renderCurrentTabCookies(rawCookies, host, embeddedHosts) {
                         ${group.cookies.map(c => `
                             <div class="cookie-item">
                                 <div><strong>${c.name}</strong> = ${c.value}</div>
+<!--                                <div class="cookie-meta">-->
+<!--                                    Domain: ${c.domain}, Path: ${c.path}, Secure: ${c.secure}, HttpOnly: ${c.httpOnly}-->
                                 <div class="cookie-meta">
-                                    Domain: ${c.domain}, Path: ${c.path}, Secure: ${c.secure}, HttpOnly: ${c.httpOnly}
+                                    <strong>${c.domain}</strong> | Path: ${c.path}, Secure: ${c.secure}, HttpOnly: ${c.httpOnly}
+    
                                     <span class="cookie-actions-inline">
                                         <button class="whitelist-single-btn" data-name="${c.name}" data-domain="${c.domain}">✅</button>
                                         <button class="delete-single-btn" data-name="${c.name}" data-domain="${c.domain}">🗑</button>
@@ -198,25 +203,70 @@ function renderFilteredTable(cookies) {
         : "";
 
     sorted.forEach(cookie => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td title="${cookie.name}">${cookie.name}</td>
-            <td title="${cookie.domain}">${cookie.domain}</td>
-            <td>${cookie.count}</td>
-            <td>
-                <span class="cookie-actions">
-                    <button class="whitelist-btn" data-domain="${cookie.domain}">✅</button>
-                    <button class="delete-btn" data-name="${cookie.name}" data-domain="${cookie.domain}">🗑</button>
+        sorted.forEach(cookie => {
+            // Основная строка (с кнопкой раскрытия)
+            const row = document.createElement("tr");
+            row.className = "cookie-row";
+            row.innerHTML = `
+        <td class="expand-toggle" data-domain="${cookie.domain}">
+            <span class="arrow">▶</span>
+            <strong>${cookie.domain}</strong>
+        </td>
+        <td class="count-cell">${cookie.count}</td>
+        <td>
+            <span class="cookie-actions">
+                <button class="whitelist-btn" data-domain="${cookie.domain}">✅</button>
+                <button class="delete-btn" data-domain="${cookie.domain}">🗑</button>
+            </span>
+        </td>
+    `;
+            tbody.appendChild(row);
+
+            // Детальная строка — пока просто placeholder
+            const detailRow = document.createElement("tr");
+detailRow.className = "cookie-details";
+detailRow.innerHTML = `<td colspan="3"><div class="cookie-loading">Loading...</div></td>`;
+tbody.appendChild(detailRow);
+
+// Загружаем cookies по домену и обновляем блок
+chrome.cookies.getAll({ domain: cookie.domain }, (domainCookies) => {
+    const html = domainCookies.map(c => `
+        <div class="cookie-item">
+            <div><strong>${c.name}</strong> = ${c.value}</div>
+            <div class="cookie-meta">
+                <strong>${c.domain}</strong>, Path: ${c.path}, Secure: ${c.secure}, HttpOnly: ${c.httpOnly}
+                <span class="cookie-actions-inline">
+                    <button class="whitelist-single-btn" data-name="${c.name}" data-domain="${c.domain}">✅</button>
+                    <button class="delete-single-btn" data-name="${c.name}" data-domain="${c.domain}">🗑</button>
                 </span>
-            </td>
-        `;
+            </div>
+        </div>
+    `).join("");
+
+    detailRow.innerHTML = `<td colspan="3">${html || "No cookies found."}</td>`;
+});
+
+        });
+
+//         const row = document.createElement("tr");
+//         row.innerHTML = `
+// <!--            <td title="${cookie.name}">${cookie.name}</td>-->
+//             <td title="${cookie.domain}">${cookie.domain}</td>
+//             <td>${cookie.count}</td>
+//             <td>
+//                 <span class="cookie-actions">
+//                     <button class="whitelist-btn" data-domain="${cookie.domain}">✅</button>
+//                     <button class="delete-btn" data-name="${cookie.name}" data-domain="${cookie.domain}">🗑</button>
+//                 </span>
+//             </td>
+//         `;
         tbody.appendChild(row);
     });
 }
 
 // Updates tab counters
 function updateTabCounters() {
-    const tabs = { essential: 0, analytics: 0, suspicious: 0, whitelist: 0 };
+    const tabs = {essential: 0, analytics: 0, suspicious: 0, whitelist: 0};
 
     chrome.storage.sync.get(["cookieWhitelist"], (data) => {
         const whitelist = new Set((data.cookieWhitelist || []).map(d => d.trim().toLowerCase()));
@@ -263,7 +313,7 @@ function attachEventHandlers() {
         }
 
         if (target.classList.contains("delete-btn")) {
-            chrome.cookies.getAll({ domain }, (cookies) => {
+            chrome.cookies.getAll({domain}, (cookies) => {
                 cookies.forEach(c => {
                     chrome.cookies.remove({
                         url: (c.secure ? "https://" : "http://") + c.domain + c.path,
@@ -287,7 +337,7 @@ function attachEventHandlers() {
             chrome.storage.sync.get(["cookieWhitelist"], (data) => {
                 const whitelist = new Set((data.cookieWhitelist || []).map(d => d.trim().toLowerCase()));
                 whitelist.add(domain.toLowerCase());
-                chrome.storage.sync.set({ cookieWhitelist: Array.from(whitelist) }, loadAndClassifyCookies);
+                chrome.storage.sync.set({cookieWhitelist: Array.from(whitelist)}, loadAndClassifyCookies);
             });
         }
 
