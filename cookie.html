@@ -1,63 +1,65 @@
 <h2>Cookie Manager</h2>
 
 <!-- Таблица для текущей вкладки -->
+<!--<div class="cookie-table-wrapper medium-table">-->
 <div class="cookie-table-wrapper small-table">
-  <table class="cookie-table">
-    <thead>
-      <tr>
-        <th class="right-align">Cookies from this site</th>
+    <table class="cookie-table">
+        <thead>
+        <tr>
+            <th class="right-align">Cookies from this site</th>
 
-        <th>Count</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="currentTabCookieTableBody"></tbody>
-  </table>
+            <th>Count</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody id="currentTabCookieTableBody"></tbody>
+    </table>
 </div>
 
 <!-- Таблица для embedded -->
 <div class="cookie-table-wrapper small-table">
-  <table class="cookie-table">
-    <thead>
-      <tr>
-        <th class="right-align">Cookies from embedded content</th>
-        <th>Count</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="embeddedCookieTableBody"></tbody>
-  </table>
+    <!--<div class="cookie-table-wrapper medium-table">-->
+    <table class="cookie-table">
+        <thead>
+        <tr>
+            <th class="right-align">Cookies from embedded content</th>
+            <th>Count</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody id="embeddedCookieTableBody"></tbody>
+    </table>
 </div>
 
 <!-- Вкладки фильтрации -->
 <div class="cookie-tab-buttons">
-  <button type="button" class="cookie-tab-btn active" data-type="essential">🔐 Essential (0)</button>
-  <button type="button" class="cookie-tab-btn" data-type="analytics">📊 Analytics (0)</button>
-  <button type="button" class="cookie-tab-btn" data-type="suspicious">⚠️ Suspicious (0)</button>
-  <button type="button" class="cookie-tab-btn" data-type="whitelist">✅ Whitelist (0)</button>
+    <button type="button" class="cookie-tab-btn active" data-type="essential">🔐 Essential (0)</button>
+    <button type="button" class="cookie-tab-btn" data-type="analytics">📊 Analytics (0)</button>
+    <button type="button" class="cookie-tab-btn" data-type="suspicious">⚠️ Suspicious (0)</button>
+    <button type="button" class="cookie-tab-btn" data-type="whitelist">✅ Whitelist (0)</button>
 </div>
 
 <!-- Основная таблица со всеми куками -->
-<div id="cookieTableWrapper" class="cookie-table-wrapper">
-  <table class="cookie-table">
-    <thead>
-      <tr>
-<!--        <th data-sort="name">Name ⬍</th>-->
-        <th data-sort="domain">Domain</th>
-        <th data-sort="count">Count</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="cookieTableBody">
-      <tr>
-        <td colspan="4">Loading...</td>
-      </tr>
-    </tbody>
-  </table>
+<div id="cookieTableWrapper" class="cookie-table-wrapper large-table">
+    <table class="cookie-table">
+        <thead>
+        <tr>
+            <!--        <th data-sort="name">Name ⬍</th>-->
+            <th data-sort="domain">Domain</th>
+            <th data-sort="count">Count</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody id="cookieTableBody">
+        <tr>
+            <td colspan="4">Loading...</td>
+        </tr>
+        </tbody>
+    </table>
 </div>
 <!-- Панель удаления для текущей вкладки -->
 <div id="cookieDeletePanel" class="cookie-delete-panel" style="display: none;">
-  <button id="deleteByTypeBtn" class="cookie-btn delete-by-type">Delete</button>
+    <button id="deleteByTypeBtn" class="cookie-btn delete-by-type">Delete</button>
 </div>
 
 <!--&lt;!&ndash; Панель управления &ndash;&gt;-->

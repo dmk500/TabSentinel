@@ -12,10 +12,10 @@ const essentialDomains = [
     "mail.yandex.ru", "passport.yandex.ru", "auth.yandex.ru"
 ];
 
-// Subdomain patterns considered essential (used for login, auth, mail)
+// Subdomain prefixes considered essential (used for login, auth, mail)
 const essentialSubdomainPrefixes = ["mail.", "auth.", "passport."];
 
-// Known analytics/tracking platforms
+// Known analytics/tracking domains
 const analyticsDomains = [
     // Global platforms
     "google-analytics.com", "googletagmanager.com", "doubleclick.net", "facebook.net",
@@ -25,8 +25,9 @@ const analyticsDomains = [
     "clicky.com", "chartbeat.com", "newrelic.com", "optimizely.com", "fullstory.com",
     "analytics.yahoo.com",
 
-    // Russian platforms
-    "metrika.yandex.ru", "openstat.net", "spylog.com", "liveinternet.ru", "top.mail.ru", "rambler.ru",
+  // Russian
+  "metrika.yandex.ru", "mc.yandex.ru", "yastatic.net", "cdn.metrika.yandex.ru",
+  "openstat.net", "spylog.com", "liveinternet.ru", "top.mail.ru", "rambler.ru",
 
     // Chinese platforms
     "baidu.com", "cnzz.com", "umeng.com",
@@ -53,7 +54,7 @@ const analyticsDomains = [
     "gemius.com.tr"
 ];
 
-// Suspicious name patterns (for adtech, trackers)
+// Suspicious name patterns (for adtech, trackers, analytics)
 const suspiciousKeywords = [
     "track", "trk", "ad", "ads", "pixel", "bid", "stat", "analytics", "click", "impression"
 ];
@@ -87,20 +88,19 @@ export function classifyCookies(cookies, firstPartyHosts = []) {
         const domain = entry.domain;
         const name = entry.name.toLowerCase();
 
-        // 1. Subdomain-based essential detection
+        // 1. Essential by subdomain
         if (essentialSubdomainPrefixes.some(prefix => domain.startsWith(prefix))) {
             entry.type = "essential";
             return;
         }
 
-        // 2. Trusted essential domains
+        // 2. Essential by trusted domains
         if (essentialDomains.some(trusted => domain.endsWith(trusted))) {
             entry.type = "essential";
             return;
         }
 
-        // 3. Known analytics/tracking domains
-        // 3. Known analytics/tracking domains
+        // 3. Analytics by known domains
         if (analyticsDomains.some(analytic =>
             domain === analytic || domain.endsWith("." + analytic)
         )) {
@@ -108,18 +108,13 @@ export function classifyCookies(cookies, firstPartyHosts = []) {
             return;
         }
 
-        // if (analyticsDomains.some(analytic => domain.includes(analytic))) {
-        //   entry.type = "analytics";
-        //   return;
-        // }
-
-        // 4. Suspicious name patterns
+        // 4. Suspicious by name pattern
         if (suspiciousKeywords.some(keyword => name.includes(keyword))) {
             entry.type = "suspicious";
             return;
         }
 
-        // 5. Third-party detection
+        // 5. Third-party fallback
         const isThirdParty = !firstPartyHosts.some(host => domain.endsWith(host));
         if (isThirdParty) {
             entry.type = "suspicious";
