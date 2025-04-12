@@ -130,3 +130,60 @@
   overflow-y: auto;
   display: block;
 }
+/* подсветка строки, если домен в whitelist */
+.cookie-row.whitelisted {
+  background-color: #e6f9e6;
+}
+
+/* раскрывающийся блок */
+.cookie-details {
+  display: none;
+  font-size: 12px;
+  padding: 6px 10px;
+  background: #f2f2f2;
+  border-top: 1px solid #ccc;
+}
+
+.cookie-details.visible {
+  display: table-row;
+}
+
+/* Стиль строки с раскрытием */
+.expand-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+/* Убираем лишнюю высоту у строки */
+.cookie-row td {
+  padding-top: 4px;
+  padding-bottom: 4px;
+  vertical-align: middle;
+}
+
+/* Стиль детальной информации */
+.cookie-item {
+  padding: 4px 6px;
+  border-bottom: 1px solid #ddd;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cookie-meta {
+  font-size: 11px;
+  color: #444;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cookie-actions-inline button {
+  margin-left: 4px;
+  padding: 1px 4px;
+  font-size: 11px;
+}

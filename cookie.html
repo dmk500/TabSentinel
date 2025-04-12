@@ -1,20 +1,48 @@
 <h2>Cookie Manager</h2>
 
 <!-- Таблица с куками текущей вкладки -->
-<div class="cookie-table-wrapper small-table" id="currentTabCookiesWrapper">
-    <table class="cookie-table">
-        <thead>
-        <tr>
-            <th>Domain</th>
-            <th>Count</th>
-            <th>Actions</th>
-        </tr>
-        </thead>
-        <tbody id="currentTabCookieTableBody">
-        <tr><td colspan="3">Loading...</td></tr>
-        </tbody>
-    </table>
+<!--<div class="cookie-table-wrapper small-table" id="currentTabCookiesWrapper">-->
+<!--    <table class="cookie-table">-->
+<!--        <thead>-->
+<!--        <tr>-->
+<!--            <th>Domain</th>-->
+<!--            <th>Count</th>-->
+<!--            <th>Actions</th>-->
+<!--        </tr>-->
+<!--        </thead>-->
+<!--        <tbody id="currentTabCookieTableBody">-->
+<!--        <tr><td colspan="3">Loading...</td></tr>-->
+<!--        </tbody>-->
+<!--    </table>-->
+<!--</div>-->
+<h3>Cookies from this site</h3>
+<div class="cookie-table-wrapper small-table">
+  <table class="cookie-table">
+    <thead>
+      <tr>
+        <th>Domain</th>
+        <th>Count</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="currentTabCookieTableBody"></tbody>
+  </table>
 </div>
+
+<h3>Cookies from embedded content</h3>
+<div class="cookie-table-wrapper small-table">
+  <table class="cookie-table">
+    <thead>
+      <tr>
+        <th>Domain</th>
+        <th>Count</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="embeddedCookieTableBody"></tbody>
+  </table>
+</div>
+
 
 <!-- Вкладки -->
 <div class="cookie-tab-buttons">
