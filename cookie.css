@@ -210,13 +210,41 @@
 }
 
 .cookie-table-wrapper.small-table {
-  height: 120px; /* For "Cookies from this site" */
+  height: 80px; /* For "Cookies from this site" */
 }
 
 .cookie-table-wrapper.medium-table {
-  height: 180px; /* For "Cookies from embedded content" */
+  height: 140px; /* For "Cookies from embedded content" */
 }
 
 .cookie-table-wrapper.large-table {
   height: 280px; /* For main filtered table */
+}
+.remove-whitelist-btn {
+  background-color: #f0f0f0;
+  color: #333;
+  border: none;
+  font-size: 12px;
+  border-radius: 4px;
+  padding: 2px 5px;
+  cursor: pointer;
+  min-width: 20px;
+  height: 22px;
+}
+
+.remove-whitelist-btn:hover {
+  background-color: #ddd;
+}
+.cookie-row.third-party {
+    background-color: #fff8d6;
+}
+
+.cookie-row .small-note {
+    font-size: 10px;
+    color: #777;
+    margin-left: 6px;
+    display: inline-block;
+}
+.expand-toggle.open .arrow {
+    transform: rotate(90deg);
 }

@@ -277,9 +277,16 @@ document.addEventListener("DOMContentLoaded", () => {
             tabContents.forEach(content => content.classList.remove("active"));
 
             button.classList.add("active");
-            document.getElementById(button.dataset.tab).classList.add("active");
+            const selectedTab = document.getElementById(button.dataset.tab);
+            selectedTab.classList.add("active");
+
+            // Reload cookies when switching to tab2
+            if (button.dataset.tab === "tab2") {
+                window.loadCookieTab?.();
+            }
         });
     });
+
 
 });
 
