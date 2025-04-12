@@ -1,4 +1,5 @@
-import {classifyCookies} from './cookieClassifier.js';
+// cookie.js
+import { classifyCookies } from './cookieClassifier.js';
 
 let allGroupedCookies = [];
 let currentType = "essential";
@@ -20,8 +21,8 @@ async function loadCookieTab() {
 }
 
 function loadAndClassifyCookies() {
-    chrome.runtime.sendMessage({action: "getAllCookies"}, (cookies) => {
-        chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+    chrome.runtime.sendMessage({ action: "getAllCookies" }, (cookies) => {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             const url = new URL(tabs[0].url);
             const host = url.hostname;
             allGroupedCookies = classifyCookies(cookies, [host]);
@@ -55,7 +56,6 @@ function renderCookieTable() {
             }
         });
 
-
         updateTabCounters();
         renderFilteredTable(Object.values(grouped));
     });
@@ -78,16 +78,16 @@ function renderFilteredTable(cookies) {
     sorted.forEach(cookie => {
         const row = document.createElement("tr");
         row.innerHTML = `
-      <td title="${cookie.name}">${cookie.name}</td>
-      <td title="${cookie.domain}">${cookie.domain}</td>
-      <td>${cookie.count}</td>
-      <td>
-        <span class="cookie-actions">
-          <button class="whitelist-btn" data-domain="${cookie.domain}">✅</button>
-          <button class="delete-btn" data-name="${cookie.name}" data-domain="${cookie.domain}">🗑</button>
-        </span>
-      </td>
-    `;
+            <td title="${cookie.name}">${cookie.name}</td>
+            <td title="${cookie.domain}">${cookie.domain}</td>
+            <td>${cookie.count}</td>
+            <td>
+                <span class="cookie-actions">
+                    <button class="whitelist-btn" data-domain="${cookie.domain}">✅</button>
+                    <button class="delete-btn" data-name="${cookie.name}" data-domain="${cookie.domain}">🗑</button>
+                </span>
+            </td>
+        `;
         tbody.appendChild(row);
     });
 }
@@ -103,7 +103,6 @@ function updateTabCounters() {
     chrome.storage.sync.get(["cookieWhitelist"], (data) => {
         const whitelist = new Set((data.cookieWhitelist || []).map(d => d.trim().toLowerCase()));
         allGroupedCookies.forEach(c => {
-            const key = `${c.name}@${c.domain}`;
             if (whitelist.has(c.domain.toLowerCase())) tabs.whitelist++;
             else tabs[c.type]++;
         });
@@ -123,27 +122,34 @@ function capitalize(s) {
 }
 
 function attachEventHandlers() {
-    document.getElementById("refreshCookiesBtn").addEventListener("click", loadAndClassifyCookies);
+    // Обработчик на обновление
+    const refreshBtn = document.querySelector(".refresh-cookies");
+    if (refreshBtn) {
+        refreshBtn.addEventListener("click", loadAndClassifyCookies);
+    }
 
-    document.querySelectorAll(".cookie-tab-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-            document.querySelectorAll(".cookie-tab-btn").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            currentType = btn.dataset.type;
-            renderCookieTable();
-        });
+    // Делегирование нажатий на вкладки
+    document.addEventListener("click", (e) => {
+        const btn = e.target.closest(".cookie-tab-btn");
+        if (!btn || !btn.dataset.type) return;
+
+        document.querySelectorAll(".cookie-tab-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentType = btn.dataset.type;
+        renderCookieTable();
     });
 
-    document.querySelectorAll("th[data-sort]").forEach(th => {
-        th.addEventListener("click", () => {
-            const sortField = th.dataset.sort;
-            currentSortField = sortField;
-            sortAsc = !sortAsc;
-            renderCookieTable();
-        });
+    // Делегирование сортировки
+    document.addEventListener("click", (e) => {
+        const th = e.target.closest("th[data-sort]");
+        if (!th) return;
+        currentSortField = th.dataset.sort;
+        sortAsc = !sortAsc;
+        renderCookieTable();
     });
 
-    document.getElementById("cookieTableBody").addEventListener("click", (e) => {
+    // Делегирование действий в таблице
+    document.addEventListener("click", (e) => {
         const target = e.target;
         const domain = target.dataset.domain;
 
@@ -151,7 +157,7 @@ function attachEventHandlers() {
             chrome.storage.sync.get(["cookieWhitelist"], (data) => {
                 const whitelist = new Set((data.cookieWhitelist || []).map(d => d.trim().toLowerCase()));
                 whitelist.add(domain.toLowerCase());
-                chrome.storage.sync.set({cookieWhitelist: Array.from(whitelist)}, loadAndClassifyCookies);
+                chrome.storage.sync.set({ cookieWhitelist: Array.from(whitelist) }, loadAndClassifyCookies);
             });
         }
 

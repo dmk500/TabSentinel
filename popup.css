@@ -12,6 +12,20 @@
  * License: MIT
  */
 /* 🔹 General Styles */
+/* Исключаем cookie кнопки из глобальных стилей */
+button:not(.cookie-btn):not(.cookie-tab-btn) {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+
 body {
     font-family: 'Arial', sans-serif;
     width: 500px; /* Fixed width */

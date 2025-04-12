@@ -1,45 +1,42 @@
 <h2>Cookie Manager</h2>
 
 <!-- Табы -->
-<div class="cookie-tab-buttons">
-  <button class="cookie-tab-btn active" data-type="essential">🔐 Essential (0)</button>
-  <button class="cookie-tab-btn" data-type="analytics">📊 Analytics (0)</button>
-  <button class="cookie-tab-btn" data-type="suspicious">⚠️ Suspicious (0)</button>
-  <button class="cookie-tab-btn" data-type="whitelist">✅ Whitelist (0)</button>
-</div>
+<!--<div class="cookie-tab-buttons">-->
+<!--    <button class="cookie-tab-btn active" data-type="essential">🔐 Essential (0)</button>-->
+<!--    <button class="cookie-tab-btn" data-type="analytics">📊 Analytics (0)</button>-->
+<!--    <button class="cookie-tab-btn" data-type="suspicious">⚠️ Suspicious (0)</button>-->
+<!--    <button class="cookie-tab-btn" data-type="whitelist">✅ Whitelist (0)</button>-->
+<!--</div>-->
 
+<div class="cookie-tab-buttons">
+    <button type="button" class="cookie-tab-btn active" data-type="essential">🔐 Essential (0)</button>
+    <button type="button" class="cookie-tab-btn" data-type="analytics">📊 Analytics (0)</button>
+    <button type="button" class="cookie-tab-btn" data-type="suspicious">⚠️ Suspicious (0)</button>
+    <button type="button" class="cookie-tab-btn" data-type="whitelist">✅ Whitelist (0)</button>
+</div>
 <!-- Таблица -->
-<div id="cookieTableWrapper" class="cookie-table-wrapper">
-  <table class="cookie-table">
-    <thead>
-      <tr>
-        <th data-sort="name">Name ⬍</th>
-        <th data-sort="domain">Domain</th>
-        <th data-sort="count">Count</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="cookieTableBody">
-      <tr><td colspan="4">Loading...</td></tr>
-    </tbody>
-  </table>
+
+<div id="cookieTableWrapper" class="cookie-table-wrapper" style="max-width: 100%; width: 100%; padding: 0 10px;">
+    <table class="cookie-table" style="max-width: 100%; width: 100%; padding: 0 10px;">
+        <thead>
+        <tr>
+            <th data-sort="name">Name ⬍</th>
+            <th data-sort="domain">Domain</th>
+            <th data-sort="count">Count</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody id="cookieTableBody">
+        <tr>
+            <td colspan="4">Loading...</td>
+        </tr>
+        </tbody>
+    </table>
 </div>
 
 <!-- Кнопки управления -->
 <div class="cookie-controls">
-  <button id="deleteThirdPartyBtn">🧼 Delete Third-Party Cookies</button>
-  <button id="deleteNonWhitelistedBtn">🚫 Delete All Except Whitelist</button>
-  <button id="refreshCookiesBtn">🔄 Refresh Cookies</button>
-
+    <button class="cookie-btn delete-thirdparty">🧼 Delete Third-Party Cookies</button>
+    <button class="cookie-btn delete-nonwhitelisted">🚫 Delete All Except Whitelist</button>
+    <button class="cookie-btn refresh-cookies">🔄 Refresh Cookies</button>
 </div>
-
-<!-- Whitelist / Blacklist -->
-<!--<div class="cookie-lists">-->
-<!--  <h3>Whitelist Domains</h3>-->
-<!--  <textarea id="whitelistInput" placeholder="e.g. google.com\nexample.org"></textarea>-->
-<!--  <button id="saveWhitelistBtn">💾 Save Whitelist</button>-->
-
-<!--  <h3>Blacklist Domains</h3>-->
-<!--  <textarea id="blacklistInput" placeholder="e.g. tracking.com\nads.example.net"></textarea>-->
-<!--  <button id="saveBlacklistBtn">💾 Save Blacklist</button>-->
-<!--</div>-->

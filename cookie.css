@@ -1,20 +1,33 @@
+/* cookie.css */
+
+/* Resetting layout issues */
+.wide-container {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding: 0 10px;
+}
+
 /* === Вкладки === */
 .cookie-tab-buttons {
   display: flex;
   justify-content: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 6px;
   gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
 }
 
 .cookie-tab-btn {
+  flex: 1;
   padding: 4px 10px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: bold;
-  border-radius: 4px;
+  border-radius: 6px;
   background-color: #e0e0e0;
+  border: none;
   white-space: nowrap;
-  flex-shrink: 0;
+  cursor: pointer;
+  transition: 0.2s;
 }
 
 .cookie-tab-btn.active {
@@ -22,80 +35,32 @@
   color: white;
 }
 
-/* === Кнопки внизу === */
-.cookie-controls {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  overflow-x: auto;          /* horizontal scroll if needed */
-  white-space: nowrap;
-  padding: 10px;
-  max-width: 100%;
-  border-radius: 6px;
-  background: #f8f8f8;
-}
-
-.cookie-controls button {
-  flex-shrink: 0;             /* prevent squashing */
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: bold;
-  border-radius: 6px;
-  color: white;
-  background-color: #dc3545;
-  white-space: nowrap;
-  border: none;
-  cursor: pointer;
-}
-
-.cookie-controls button:hover {
-  background-color: #a71d2a;
-}
-
-
-
-
-#deleteThirdPartyBtn,
-#deleteNonWhitelistedBtn {
-  background-color: #dc3545;
-}
-
-#refreshCookiesBtn {
-  background-color: #6c757d;
-}
-
 /* === Таблица === */
 .cookie-table-wrapper {
+  width: 100%;
   overflow-x: auto;
-  max-width: 100%;
   border: 1px solid #ccc;
   border-radius: 6px;
+  margin-top: 10px;
 }
 
 .cookie-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  table-layout: auto;
 }
 
 .cookie-table th,
 .cookie-table td {
   border: 1px solid #ccc;
-  padding: 4px 6px;
+  padding: 6px 8px;
   text-align: left;
-  max-width: 160px;
+  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  line-height: 1.2;
   vertical-align: middle;
-}
-
-.cookie-table td:last-child {
-  min-width: 85px;
-  white-space: nowrap;
 }
 
 .cookie-table th {
@@ -106,12 +71,10 @@
   z-index: 1;
 }
 
-/* === Кнопки в таблице === */
 .cookie-actions {
   display: flex;
-  gap: 2px;
+  gap: 4px;
   justify-content: center;
-  flex-wrap: nowrap;
 }
 
 .cookie-actions button {
@@ -119,43 +82,46 @@
   font-size: 12px;
 }
 
-/* === Списки === */
-.cookie-lists {
-  margin-top: 20px;
-  text-align: left;
-}
-
-.cookie-lists h3 {
-  margin: 10px 0 5px;
-  font-size: 14px;
-}
-
-.cookie-lists textarea {
-  width: 100%;
-  height: 60px;
+/* === Кнопки управления === */
+.cookie-controls {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px;
+  background: #f9f9f9;
   border-radius: 6px;
-  border: 1px solid #ccc;
-  padding: 6px;
-  resize: vertical;
-  font-family: monospace;
 }
 
-.cookie-lists button {
-  margin-top: 5px;
-  background-color: #007bff;
-  color: white;
+.cookie-btn {
+  padding: 6px 12px;
+  font-size: 13px;
   font-weight: bold;
-  border-radius: 4px;
-  padding: 4px 8px;
+  border-radius: 6px;
+  color: white;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
-/* === Мобильная адаптация === */
-@media (max-width: 500px) {
-  .cookie-controls {
-    flex-wrap: wrap;
-  }
+.delete-thirdparty,
+.delete-nonwhitelisted {
+  background-color: #dc3545;
+}
 
-  .cookie-tab-buttons {
-    flex-wrap: wrap;
+.refresh-cookies {
+  background-color: #6c757d;
+}
+
+.cookie-btn:hover {
+  opacity: 0.85;
+}
+
+@media (max-width: 500px) {
+  .cookie-tab-buttons,
+  .cookie-controls {
+    flex-wrap: nowrap;
+    overflow-x: auto;
   }
 }
