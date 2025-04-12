@@ -55,10 +55,14 @@
     </tbody>
   </table>
 </div>
-
-<!-- Панель управления -->
-<div class="cookie-controls">
-  <button class="cookie-btn delete-thirdparty">🧼 Delete Third-Party Cookies</button>
-  <button class="cookie-btn delete-nonwhitelisted">🚫 Delete All Except Whitelist</button>
-  <button class="cookie-btn refresh-cookies">🔄 Refresh Cookies</button>
+<!-- Панель удаления для текущей вкладки -->
+<div id="cookieDeletePanel" class="cookie-delete-panel" style="display: none;">
+  <button id="deleteByTypeBtn" class="cookie-btn delete-by-type">Delete</button>
 </div>
+
+<!--&lt;!&ndash; Панель управления &ndash;&gt;-->
+<!--<div class="cookie-controls">-->
+<!--  <button class="cookie-btn delete-thirdparty">🧼 Delete Third-Party Cookies</button>-->
+<!--  <button class="cookie-btn delete-nonwhitelisted">🚫 Delete All Except Whitelist</button>-->
+<!--  <button class="cookie-btn refresh-cookies">🔄 Refresh Cookies</button>-->
+<!--</div>-->
