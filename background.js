@@ -12,11 +12,18 @@
  *
  * License: MIT
  */
-
-const suspendedTabs = new Set();
 import {DEFAULT_CONFIG} from './config.js';
 
+const loggedTabs = new Map(); // tabId -> reason или "suspended"
+const suspendedTabs = new Set();
 const DEFAULT_EXCLUDED_SITES = DEFAULT_CONFIG.DEFAULT_EXCLUDED_SITES;
+
+function logOnce(tabId, message) {
+    if (!loggedTabs.has(tabId)) {
+        console.log(message);
+        loggedTabs.set(tabId, true);
+    }
+}
 
 
 // Create an alarm to periodically check tabs
@@ -31,12 +38,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 });
 
+// Validate if a URL can be suspended (must be http/https)
+function isValidURL(url) {
+    try {
+        const parsed = new URL(url);
+        const invalidPatterns = [".pdf"];
+        return ["http:", "https:"].includes(parsed.protocol) &&
+            !invalidPatterns.some(pattern => parsed.pathname.endsWith(pattern));
+    } catch (e) {
+        return false;
+    }
+}
+
+
 // Function to check and suspend inactive tabs
 function checkTabs() {
     // chrome.storage.sync.get(["suspendTime", "excludedSites"], (data) => {
     chrome.storage.sync.get(["extensionEnabled", "suspendTime", "excludedSites"], (data) => {
         if (data.extensionEnabled === false) {
-            console.log("Extension is disabled. Skipping checkTabs.");
+            logOnce("GLOBAL", "[Skipped: R07] Extension disabled");
             return;
         }
         const SUSPEND_TIME = data.suspendTime || DEFAULT_CONFIG.DEFAULT_SUSPEND_TIME;
@@ -61,45 +81,59 @@ function checkTabs() {
                         return; // Некорректный URL — выходим
                     }
 
-                    const protocol = parsedUrl.protocol;
-                    const hostname = parsedUrl.hostname;
-
-                    if (
-                        DEFAULT_CONFIG.DISALLOWED_PROTOCOLS.includes(protocol) ||
-                        !hostname
-                    ) {
+                    if (!isValidURL(tab.url)) {
                         console.warn("Skipping unsupported tab:", tab.url);
                         return;
                     }
 
-
                     const url = parsedUrl.hostname;
-
-
                     // Skip tabs that meet exclusion criteria
-                    if (activeTabIds.includes(tab.id) || excludedSites.includes(url) || suspendedTabs.has(tab.id) || !isValidURL(tab.url)) {
+                    if (activeTabIds.includes(tab.id)) {
                         return;
                     }
 
+                    if (excludedSites.includes(url)) {
+                        console.log("[Skipped: R03] Excluded site —", url);
+                        return;
+                    }
+
+                    if (suspendedTabs.has(tab.id)) {
+                        logOnce(tab.id, `[Skipped: R04] Already suspended — ${tab.title}`);
+                        return;
+                    }
                     chrome.tabs.get(tab.id, (currentTab) => {
                         if (chrome.runtime.lastError || !currentTab) return; // Ignore erroneous tabs
-
                         let lastAccessed = currentTab.lastAccessed || now - 10 * 60 * 1000;
-
                         if (now - lastAccessed > SUSPEND_TIME) {
-                            console.log("Suspending tab:", tab.id, tab.title);
                             const blockedProtocols = ["chrome:", "chrome-extension:", "about:", "edge:", "file:"];
                             if (blockedProtocols.some(p => tab.url.startsWith(p))) {
                                 console.warn("Skipping restricted tab:", tab.url);
                                 return;
                             }
+                            try {
+                                // Test access by injecting a no-op function
+                                chrome.scripting.executeScript({
+                                    target: {tabId: tab.id},
+                                    func: () => true
+                                }).then(() => {
+                                    logOnce(tab.id, `[Suspended] ${tab.title} (${tab.url})`);
+                                    suspendedTabs.add(tab.id); // Mark as Suspended
+                                    chrome.scripting.executeScript({
+                                        target: {tabId: tab.id},
+                                        func: suspendTab,
+                                        args: [chrome.runtime.getURL('icon_bg.png')],
+                                    }).catch(err => {
+                                        console.error("Suspend failed after access granted:", tab.url, err);
+                                    });
+                                }).catch(err => {
+                                    console.warn("Skipping tab (reason 01 - restricted by browser):", tab.url);
+                                });
 
-                            chrome.scripting.executeScript({
-                                target: {tabId: tab.id},
-                                func: suspendTab,
-                                args: [chrome.runtime.getURL('icon_bg.png')],
 
-                            }).catch(err => console.error("Error suspending tab:", err));
+                            } catch (e) {
+                                console.error("Sync exception while injecting script:", tab.url, e);
+                            }
+
                         }
                     });
                 });
@@ -107,14 +141,6 @@ function checkTabs() {
         });
     });
 }
-
-// Validate if a URL can be suspended
-function isValidURL(url) {
-    return url && !url.startsWith("chrome://") && !url.startsWith("file://") &&
-        !url.startsWith("edge://") && !url.startsWith("chrome-extension://") &&
-        !url.startsWith("about:");
-}
-
 
 // Function to suspend a tab
 function suspendTab(iconUrl) {
@@ -149,7 +175,7 @@ function suspendTab(iconUrl) {
 chrome.alarms.onAlarm.addListener(() => {
     chrome.storage.sync.get("extensionEnabled", (data) => {
         if (data.extensionEnabled === false) {
-            console.log("Extension is disabled. Skipping alarm check.");
+            logOnce("GLOBAL_ALARM", "[Skipped: R07] Extension disabled during alarm check");
             return;
         }
         checkTabs();
@@ -158,12 +184,10 @@ chrome.alarms.onAlarm.addListener(() => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "getAllCookies") {
         chrome.cookies.getAll({}, (cookies) => {
-            console.log("Sending cookies to popup:", cookies);
+            logOnce("COOKIES_POPUP", `[Info] Sending cookies to popup (${cookies.length})`);
             sendResponse(cookies);
         });
         return true; // keep message channel open
     }
 
-
-    // другие сообщения
 });

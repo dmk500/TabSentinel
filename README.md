@@ -112,3 +112,14 @@ There are **no tracking scripts**, no analytics, and no third-party integrations
 - HTML / CSS (popup UI)
 
 ---
+## Error and Notification list
+| Code | Cause When used                                                           |
+| -----|---------------------------------------------------------------------------|
+| R01 | restricted by browser Chrome does not allow inserting a script into this tab |
+| R02 | unsupported protocol The tab uses chrome:, file:, etc.                    |
+| R03 | excluded site The domain is on the exclusion list                         |
+| R04 | already suspended Tab has already been suspended                          |
+| R05 | active tab Tab is active, does not need to be suspended.                  |
+| R06 | invalid or unknown URL Incorrect or unrecognized URL                      |
+| R07 | extension disabled User disabled extension                                |
+| -----|---------------------------------------------------------------------------|
