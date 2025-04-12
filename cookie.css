@@ -1,47 +1,10 @@
-/* cookie.css */
-
-/* Resetting layout issues */
-.wide-container {
-  max-width: 100% !important;
-  width: 100% !important;
-  padding: 0 10px;
-}
-
-/* === Вкладки === */
-.cookie-tab-buttons {
-  display: flex;
-  justify-content: center;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  padding: 6px;
-  gap: 6px;
-}
-
-.cookie-tab-btn {
-  flex: 1;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: bold;
-  border-radius: 6px;
-  background-color: #e0e0e0;
-  border: none;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.cookie-tab-btn.active {
-  background-color: #007bff;
-  color: white;
-}
-
-/* === Таблица === */
+/* Основная таблица */
 .cookie-table-wrapper {
   width: 100%;
   overflow-x: auto;
   border: 1px solid #ccc;
   border-radius: 6px;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .cookie-table {
@@ -54,93 +17,51 @@
 .cookie-table th,
 .cookie-table td {
   border: 1px solid #ccc;
-  padding: 6px 8px;
+  padding: 3px 5px;
   text-align: left;
-  max-width: 200px;
+  max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: middle;
+  line-height: 1.1;
 }
 
-.cookie-table th {
-  background-color: #f9f9f9;
-  font-weight: bold;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.cookie-actions {
+/* Вкладки фильтрации */
+.cookie-tab-buttons {
   display: flex;
-  gap: 4px;
   justify-content: center;
+  overflow-x: auto;
+  gap: 6px;
+  margin: 8px 0;
 }
 
-.cookie-actions button {
-  padding: 2px 4px;
+.cookie-tab-btn {
   font-size: 12px;
-}
-
-/* === Кнопки управления === */
-.cookie-controls {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 12px;
-  padding: 10px;
-  background: #f9f9f9;
+  padding: 3px 8px;
   border-radius: 6px;
-}
-
-.cookie-btn {
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: bold;
-  border-radius: 6px;
-  color: white;
+  background: #e0e0e0;
   border: none;
-  cursor: pointer;
   white-space: nowrap;
+  cursor: pointer;
 }
 
-.delete-thirdparty,
-.delete-nonwhitelisted {
-  background-color: #dc3545;
+.cookie-tab-btn.active {
+  background: #007bff;
+  color: white;
 }
 
-.refresh-cookies {
-  background-color: #6c757d;
-}
-
-.cookie-btn:hover {
-  opacity: 0.85;
-}
-
-@media (max-width: 500px) {
-  .cookie-tab-buttons,
-  .cookie-controls {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-  }
-}
-.small-table {
-  max-height: 200px;
-  overflow-y: auto;
-  display: block;
-}
-/* подсветка строки, если домен в whitelist */
+/* Белый список подсветка */
 .cookie-row.whitelisted {
   background-color: #e6f9e6;
 }
 
-/* раскрывающийся блок */
+/* Детали куки */
 .cookie-details {
   display: none;
+  background: #f2f2f2;
   font-size: 12px;
   padding: 6px 10px;
-  background: #f2f2f2;
   border-top: 1px solid #ccc;
 }
 
@@ -148,24 +69,45 @@
   display: table-row;
 }
 
-/* Стиль строки с раскрытием */
 .expand-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   cursor: pointer;
+  font-weight: 600;
 }
 
-/* Убираем лишнюю высоту у строки */
-.cookie-row td {
-  padding-top: 4px;
-  padding-bottom: 4px;
-  vertical-align: middle;
+/* Панель действий */
+.cookie-actions,
+.cookie-actions-inline {
+  display: flex;
+  gap: 3px;
+  align-items: center;
 }
 
-/* Стиль детальной информации */
+.cookie-actions {
+  justify-content: flex-start;
+}
+
+.cookie-actions button,
+.cookie-actions-inline button {
+  padding: 1px 4px !important;
+  font-size: 11px !important;
+  border: none;
+  background: #e0e0e0;
+  border-radius: 3px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.cookie-actions button:hover,
+.cookie-actions-inline button:hover {
+  background-color: #ccc;
+}
+
+/* Детали конкретных cookie */
 .cookie-item {
-  padding: 4px 6px;
+  padding: 3px 6px;
   border-bottom: 1px solid #ddd;
   font-size: 12px;
   display: flex;
@@ -178,12 +120,56 @@
   color: #444;
   display: flex;
   justify-content: space-between;
-  align-items: center;
   flex-wrap: wrap;
+  gap: 6px;
 }
 
+/* Компактные строки */
+.cookie-row td {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+/* Высота таблицы вкладки */
+.small-table {
+  max-height: 200px;
+  overflow-y: auto;
+  display: block;
+}
+/* Фиксированная ширина Count и Actions */
+.cookie-table th:nth-child(2),
+.cookie-table td:nth-child(2) {
+  width: 60px;
+  text-align: right;
+}
+
+.cookie-table th:nth-child(3),
+.cookie-table td:nth-child(3) {
+  width: 90px;
+  text-align: left;
+}
+
+/* Общее выравнивание по левому краю для всего, кроме count */
+.cookie-table th,
+.cookie-table td {
+  text-align: left;
+}
+
+/* Ячейка count отдельно — вправо, остальное — влево */
+.cookie-table td.count-cell {
+  text-align: right;
+}
+
+/* Кнопки минимального размера */
+.cookie-actions button,
 .cookie-actions-inline button {
-  margin-left: 4px;
-  padding: 1px 4px;
-  font-size: 11px;
+  padding: 2px 4px !important;
+  font-size: 11px !important;
+  border: none;
+  background: #e0e0e0;
+  border-radius: 3px;
+  cursor: pointer;
+  line-height: 1;
+  min-width: 22px;
+  height: 22px;
 }

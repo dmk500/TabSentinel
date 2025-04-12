@@ -1,16 +1,18 @@
-import {classifyCookies} from './cookieClassifier.js';
+import { classifyCookies } from './cookieClassifier.js';
 
 let allGroupedCookies = [];
 let currentType = "essential";
 let currentSortField = "name";
 let sortAsc = true;
 
+// On tab load, inject cookie UI and run classification
 document.addEventListener("DOMContentLoaded", () => {
     const cookieTab = document.getElementById("tab2");
     if (!cookieTab) return;
     loadCookieTab();
 });
 
+// Loads cookie.html and runs embedded resource scan
 async function loadCookieTab() {
     const response = await fetch(chrome.runtime.getURL("cookie.html"));
     const html = await response.text();
@@ -19,53 +21,44 @@ async function loadCookieTab() {
     attachEventHandlers();
 }
 
+// Check if cookie domain matches the current page host
 function domainMatches(cookieDomain, pageHost) {
     const clean = cookieDomain.startsWith(".") ? cookieDomain.slice(1) : cookieDomain;
     return pageHost === clean || pageHost.endsWith("." + clean);
 }
 
+// Get cookies and extract embedded domains from the page
 function loadAndClassifyCookies() {
-    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         const tab = tabs[0];
         const url = new URL(tab.url);
         const host = url.hostname;
 
-        // Выполняем скрипт только при открытии вкладки Cookie
         chrome.scripting.executeScript({
-            target: {tabId: tab.id},
+            target: { tabId: tab.id },
             func: () => {
                 const domains = new Set();
-
-                // 1. DOM-based embedded URLs
                 ['src', 'href', 'action'].forEach(attr => {
                     document.querySelectorAll(`[${attr}]`).forEach(el => {
                         try {
                             const val = el.getAttribute(attr);
                             const url = new URL(val, document.baseURI);
                             if (url.hostname !== location.hostname) domains.add(url.hostname);
-                        } catch (_) {
-                        }
+                        } catch (_) {}
                     });
                 });
-
-                // 2. Loaded resources via JS/fetch/XHR/iframes/etc
                 if (performance.getEntriesByType) {
                     performance.getEntriesByType("resource").forEach(entry => {
                         try {
                             const url = new URL(entry.name);
                             if (url.hostname !== location.hostname) domains.add(url.hostname);
-                        } catch (_) {
-                        }
+                        } catch (_) {}
                     });
                 }
-
                 return Array.from(domains);
             }
-
-
         }, (results) => {
             const embeddedHosts = results?.[0]?.result || [];
-
             chrome.cookies.getAll({}, (cookies) => {
                 allGroupedCookies = classifyCookies(cookies, [host]);
                 renderCookieTable();
@@ -75,6 +68,7 @@ function loadAndClassifyCookies() {
     });
 }
 
+// Renders both main and embedded cookie tables
 function renderCurrentTabCookies(rawCookies, host, embeddedHosts) {
     const mainTbody = document.getElementById("currentTabCookieTableBody");
     const embedTbody = document.getElementById("embeddedCookieTableBody");
@@ -84,39 +78,26 @@ function renderCurrentTabCookies(rawCookies, host, embeddedHosts) {
         const whitelist = new Set((data.cookieWhitelist || []).map(d => d.trim().toLowerCase()));
         const embeddedSet = new Set(embeddedHosts.map(d => d.toLowerCase()));
 
-        console.log("📦 Embedded domains from script:", embeddedSet);
-        console.log("🍪 All raw cookies:", rawCookies.map(c => c.domain));
-
         const main = {};
         const embedded = {};
 
         rawCookies.forEach(c => {
             const domain = c.domain.toLowerCase();
+            const normalizedDomain = domain.replace(/^\./, "");
 
-            // check if domain matches main host
             if (domainMatches(domain, host)) {
                 if (!main[domain]) main[domain] = { domain, cookies: [] };
                 main[domain].cookies.push(c);
+            } else if (
+                embeddedSet.has(normalizedDomain) ||
+                embeddedSet.has(domain) ||
+                [...embeddedSet].some(ed =>
+                    normalizedDomain === ed || normalizedDomain.endsWith("." + ed)
+                )
+            ) {
+                if (!embedded[domain]) embedded[domain] = { domain, cookies: [] };
+                embedded[domain].cookies.push(c);
             }
-            // check if domain matches embedded domains
-            else {
-  const normalizedDomain = domain.replace(/^\./, "");
-  if (
-    embeddedSet.has(normalizedDomain) ||
-    embeddedSet.has(domain) ||
-    [...embeddedSet].some(ed =>
-      normalizedDomain === ed || normalizedDomain.endsWith("." + ed)
-    )
-  ) {
-    if (!embedded[domain]) embedded[domain] = { domain, cookies: [] };
-    embedded[domain].cookies.push(c);
-  }
-}
-
-            // {
-            //     if (!embedded[domain]) embedded[domain] = { domain, cookies: [] };
-            //     embedded[domain].cookies.push(c);
-            // }
         });
 
         const render = (tbody, grouped) => {
@@ -171,11 +152,10 @@ function renderCurrentTabCookies(rawCookies, host, embeddedHosts) {
     });
 }
 
-
+// Render summary cookie table for type tabs
 function renderCookieTable() {
     chrome.storage.sync.get(["cookieWhitelist"], (data) => {
         const whitelist = new Set((data.cookieWhitelist || []).map(d => d.trim().toLowerCase()));
-
         const filtered = allGroupedCookies.filter(c => {
             if (currentType === "whitelist") return whitelist.has(c.domain.toLowerCase());
             return c.type === currentType && !whitelist.has(c.domain.toLowerCase());
@@ -202,6 +182,7 @@ function renderCookieTable() {
     });
 }
 
+// Renders main tab table by type
 function renderFilteredTable(cookies) {
     const tbody = document.getElementById("cookieTableBody");
     if (!tbody) return;
@@ -233,13 +214,9 @@ function renderFilteredTable(cookies) {
     });
 }
 
+// Updates tab counters
 function updateTabCounters() {
-    const tabs = {
-        essential: 0,
-        analytics: 0,
-        suspicious: 0,
-        whitelist: 0
-    };
+    const tabs = { essential: 0, analytics: 0, suspicious: 0, whitelist: 0 };
 
     chrome.storage.sync.get(["cookieWhitelist"], (data) => {
         const whitelist = new Set((data.cookieWhitelist || []).map(d => d.trim().toLowerCase()));
@@ -258,59 +235,63 @@ function updateTabCounters() {
     });
 }
 
+// Capitalize first letter
 function capitalize(s) {
     return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// Sets up click handlers
 function attachEventHandlers() {
-    const refreshBtn = document.querySelector(".refresh-cookies");
-    if (refreshBtn) {
-        refreshBtn.addEventListener("click", loadAndClassifyCookies);
-    }
+    document.querySelector(".refresh-cookies")?.addEventListener("click", loadAndClassifyCookies);
 
     document.addEventListener("click", (e) => {
-        const btn = e.target.closest(".cookie-tab-btn");
-        if (btn && btn.dataset.type) {
-            document.querySelectorAll(".cookie-tab-btn").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            currentType = btn.dataset.type;
-            renderCookieTable();
-            return;
-        }
-
-        const th = e.target.closest("th[data-sort]");
-        if (th) {
-            currentSortField = th.dataset.sort;
-            sortAsc = !sortAsc;
-            renderCookieTable();
-            return;
-        }
-
         const target = e.target;
         const domain = target.dataset.domain;
         const name = target.dataset.name;
 
-        if (target.classList.contains("whitelist-btn")) {
-            chrome.storage.sync.get(["cookieWhitelist"], (data) => {
-                const whitelist = new Set((data.cookieWhitelist || []).map(d => d.trim().toLowerCase()));
-                whitelist.add(domain.toLowerCase());
-                chrome.storage.sync.set({cookieWhitelist: Array.from(whitelist)}, loadAndClassifyCookies);
-            });
+        if (target.closest(".cookie-tab-btn")) {
+            document.querySelectorAll(".cookie-tab-btn").forEach(b => b.classList.remove("active"));
+            target.classList.add("active");
+            currentType = target.dataset.type;
+            renderCookieTable();
         }
 
-        if (target.classList.contains("whitelist-single-btn")) {
-            console.log(`✅ Add to whitelist: ${name}@${domain}`);
+        if (target.closest("th[data-sort]")) {
+            currentSortField = target.dataset.sort;
+            sortAsc = !sortAsc;
+            renderCookieTable();
         }
 
         if (target.classList.contains("delete-btn")) {
-            console.log(`🗑 TODO: delete ALL for domain ${domain}`);
+            chrome.cookies.getAll({ domain }, (cookies) => {
+                cookies.forEach(c => {
+                    chrome.cookies.remove({
+                        url: (c.secure ? "https://" : "http://") + c.domain + c.path,
+                        name: c.name
+                    });
+                });
+                setTimeout(loadAndClassifyCookies, 300);
+            });
         }
 
         if (target.classList.contains("delete-single-btn")) {
-            console.log(`🗑 Delete one: ${name}@${domain}`);
+            chrome.cookies.remove({
+                url: `https://${domain}`,
+                name
+            }, () => {
+                setTimeout(loadAndClassifyCookies, 300);
+            });
         }
 
-        const toggle = e.target.closest(".expand-toggle");
+        if (target.classList.contains("whitelist-btn") || target.classList.contains("whitelist-single-btn")) {
+            chrome.storage.sync.get(["cookieWhitelist"], (data) => {
+                const whitelist = new Set((data.cookieWhitelist || []).map(d => d.trim().toLowerCase()));
+                whitelist.add(domain.toLowerCase());
+                chrome.storage.sync.set({ cookieWhitelist: Array.from(whitelist) }, loadAndClassifyCookies);
+            });
+        }
+
+        const toggle = target.closest(".expand-toggle");
         if (toggle) {
             const tr = toggle.closest("tr");
             const next = tr.nextElementSibling;
@@ -318,9 +299,7 @@ function attachEventHandlers() {
             if (next && next.classList.contains("cookie-details")) {
                 next.classList.toggle("visible");
                 toggle.classList.toggle("open");
-                if (arrow) {
-                    arrow.innerText = next.classList.contains("visible") ? "▼" : "▶";
-                }
+                if (arrow) arrow.innerText = next.classList.contains("visible") ? "▼" : "▶";
             }
         }
     });
