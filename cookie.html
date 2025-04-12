@@ -1,21 +1,30 @@
 <h2>Cookie Manager</h2>
 
-<!-- Табы -->
-<!--<div class="cookie-tab-buttons">-->
-<!--    <button class="cookie-tab-btn active" data-type="essential">🔐 Essential (0)</button>-->
-<!--    <button class="cookie-tab-btn" data-type="analytics">📊 Analytics (0)</button>-->
-<!--    <button class="cookie-tab-btn" data-type="suspicious">⚠️ Suspicious (0)</button>-->
-<!--    <button class="cookie-tab-btn" data-type="whitelist">✅ Whitelist (0)</button>-->
-<!--</div>-->
+<!-- Таблица с куками текущей вкладки -->
+<div class="cookie-table-wrapper small-table" id="currentTabCookiesWrapper">
+    <table class="cookie-table">
+        <thead>
+        <tr>
+            <th>Domain</th>
+            <th>Count</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody id="currentTabCookieTableBody">
+        <tr><td colspan="3">Loading...</td></tr>
+        </tbody>
+    </table>
+</div>
 
+<!-- Вкладки -->
 <div class="cookie-tab-buttons">
     <button type="button" class="cookie-tab-btn active" data-type="essential">🔐 Essential (0)</button>
     <button type="button" class="cookie-tab-btn" data-type="analytics">📊 Analytics (0)</button>
     <button type="button" class="cookie-tab-btn" data-type="suspicious">⚠️ Suspicious (0)</button>
     <button type="button" class="cookie-tab-btn" data-type="whitelist">✅ Whitelist (0)</button>
 </div>
-<!-- Таблица -->
 
+<!-- Основная таблица -->
 <div id="cookieTableWrapper" class="cookie-table-wrapper" style="max-width: 100%; width: 100%; padding: 0 10px;">
     <table class="cookie-table" style="max-width: 100%; width: 100%; padding: 0 10px;">
         <thead>
