@@ -25,24 +25,37 @@
 /* === Кнопки внизу === */
 .cookie-controls {
   display: flex;
-  flex-wrap: nowrap;
+  flex-direction: row;
   justify-content: center;
   align-items: center;
   gap: 10px;
-  margin-top: 15px;
-  margin-bottom: 10px;
-  overflow-x: auto;
+  overflow-x: auto;          /* horizontal scroll if needed */
+  white-space: nowrap;
+  padding: 10px;
+  max-width: 100%;
+  border-radius: 6px;
+  background: #f8f8f8;
 }
 
 .cookie-controls button {
-  padding: 5px 10px;
+  flex-shrink: 0;             /* prevent squashing */
+  padding: 6px 12px;
   font-size: 13px;
   font-weight: bold;
-  border-radius: 4px;
+  border-radius: 6px;
   color: white;
+  background-color: #dc3545;
   white-space: nowrap;
-  flex-shrink: 0;
+  border: none;
+  cursor: pointer;
 }
+
+.cookie-controls button:hover {
+  background-color: #a71d2a;
+}
+
+
+
 
 #deleteThirdPartyBtn,
 #deleteNonWhitelistedBtn {
