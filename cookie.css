@@ -1,0 +1,148 @@
+/* === Вкладки === */
+.cookie-tab-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.cookie-tab-btn {
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: bold;
+  border-radius: 4px;
+  background-color: #e0e0e0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cookie-tab-btn.active {
+  background-color: #007bff;
+  color: white;
+}
+
+/* === Кнопки внизу === */
+.cookie-controls {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+  margin-bottom: 10px;
+  overflow-x: auto;
+}
+
+.cookie-controls button {
+  padding: 5px 10px;
+  font-size: 13px;
+  font-weight: bold;
+  border-radius: 4px;
+  color: white;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+#deleteThirdPartyBtn,
+#deleteNonWhitelistedBtn {
+  background-color: #dc3545;
+}
+
+#refreshCookiesBtn {
+  background-color: #6c757d;
+}
+
+/* === Таблица === */
+.cookie-table-wrapper {
+  overflow-x: auto;
+  max-width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.cookie-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.cookie-table th,
+.cookie-table td {
+  border: 1px solid #ccc;
+  padding: 4px 6px;
+  text-align: left;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+  vertical-align: middle;
+}
+
+.cookie-table td:last-child {
+  min-width: 85px;
+  white-space: nowrap;
+}
+
+.cookie-table th {
+  background-color: #f9f9f9;
+  font-weight: bold;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* === Кнопки в таблице === */
+.cookie-actions {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  flex-wrap: nowrap;
+}
+
+.cookie-actions button {
+  padding: 2px 4px;
+  font-size: 12px;
+}
+
+/* === Списки === */
+.cookie-lists {
+  margin-top: 20px;
+  text-align: left;
+}
+
+.cookie-lists h3 {
+  margin: 10px 0 5px;
+  font-size: 14px;
+}
+
+.cookie-lists textarea {
+  width: 100%;
+  height: 60px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  padding: 6px;
+  resize: vertical;
+  font-family: monospace;
+}
+
+.cookie-lists button {
+  margin-top: 5px;
+  background-color: #007bff;
+  color: white;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+/* === Мобильная адаптация === */
+@media (max-width: 500px) {
+  .cookie-controls {
+    flex-wrap: wrap;
+  }
+
+  .cookie-tab-buttons {
+    flex-wrap: wrap;
+  }
+}

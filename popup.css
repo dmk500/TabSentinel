@@ -14,8 +14,8 @@
 /* 🔹 General Styles */
 body {
     font-family: 'Arial', sans-serif;
-    width: 450px; /* Fixed width */
-    height: 600px; /* Fixed height */
+    width: 500px; /* Fixed width */
+    height: 680px; /* Fixed height */
     background: #f9f9f9;
     padding: 15px;
     text-align: center;
@@ -30,7 +30,7 @@ body {
     border-radius: 12px;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
     width: 100%;
-    max-width: 420px;
+    max-width: 470px;
     display: flex;
     flex-direction: column;
     height: auto;
@@ -299,4 +299,33 @@ input:checked + .slider:before {
 .disabled {
     opacity: 0.5;
     pointer-events: none;
+}
+.tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.tab-button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.3s;
+}
+
+.tab-button.active {
+    background: #007bff;
+    color: white;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
 }

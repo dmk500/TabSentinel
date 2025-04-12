@@ -88,6 +88,12 @@ function checkTabs() {
 
                         if (now - lastAccessed > SUSPEND_TIME) {
                             console.log("Suspending tab:", tab.id, tab.title);
+                            const blockedProtocols = ["chrome:", "chrome-extension:", "about:", "edge:", "file:"];
+                            if (blockedProtocols.some(p => tab.url.startsWith(p))) {
+                                console.warn("Skipping restricted tab:", tab.url);
+                                return;
+                            }
+
                             chrome.scripting.executeScript({
                                 target: {tabId: tab.id},
                                 func: suspendTab,
@@ -148,4 +154,16 @@ chrome.alarms.onAlarm.addListener(() => {
         }
         checkTabs();
     });
+});
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === "getAllCookies") {
+        chrome.cookies.getAll({}, (cookies) => {
+            console.log("Sending cookies to popup:", cookies);
+            sendResponse(cookies);
+        });
+        return true; // keep message channel open
+    }
+
+
+    // другие сообщения
 });

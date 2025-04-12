@@ -1,6 +1,6 @@
 export const DEFAULT_CONFIG = {
     DEFAULT_SUSPEND_TIME: 60 * 60000,       // 60 minutes
-    MIN_SUSPEND_TIME_MINUTES: 5,            // min 5 minutes
+    MIN_SUSPEND_TIME_MINUTES: 1,            // min 5 minutes
     MAX_SUSPEND_TIME_MINUTES: 1440,         // max 24 minutes
     DEFAULT_EXTENSION_ENABLED_KEY: "extensionEnabled",
     DEFAULT_EXCLUDED_SITES: [
@@ -20,4 +20,5 @@ export const DEFAULT_CONFIG = {
         "about:",
         "file:"
     ]
+
 };

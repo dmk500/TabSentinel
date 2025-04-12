@@ -28,6 +28,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const unfreezeAllTabsButton = document.getElementById("unfreezeAllTabs");
     const extensionToggle = document.getElementById("extensionToggle");
     const controlsContainer = document.getElementById("controlsContainer");
+    const tabButtons = document.querySelectorAll(".tab-button");
+    const tabContents = document.querySelectorAll(".tab-content");
 
     suspendTimeInput.min = DEFAULT_CONFIG.MIN_SUSPEND_TIME_MINUTES;
     suspendTimeInput.max = DEFAULT_CONFIG.MAX_SUSPEND_TIME_MINUTES;
@@ -267,6 +269,18 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
     });
+
+
+    tabButtons.forEach(button => {
+        button.addEventListener("click", () => {
+            tabButtons.forEach(btn => btn.classList.remove("active"));
+            tabContents.forEach(content => content.classList.remove("active"));
+
+            button.classList.add("active");
+            document.getElementById(button.dataset.tab).classList.add("active");
+        });
+    });
+
 });
 
 
