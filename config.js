@@ -19,6 +19,7 @@ export const DEFAULT_CONFIG = {
         "edge:",
         "about:",
         "file:"
-    ]
-
+    ],
+    ENABLE_SLEEP_LOGS: 1,     // 🔧 Suspender logs
+    ENABLE_COOKIE_LOGS: 1     // 🔧 Cookie logs
 };

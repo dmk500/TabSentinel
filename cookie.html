@@ -1,13 +1,12 @@
 <h2>Cookie Manager</h2>
 
-<!-- Таблица для текущей вкладки -->
+<!-- Table for the current tab -->
 <div class="cookie-table-wrapper medium-table">
-<!--<div class="cookie-table-wrapper small-table">-->
     <table class="cookie-table">
+        <caption>Cookies from this site</caption>
         <thead>
         <tr>
-            <th class="right-align">Cookies from this site</th>
-
+            <th class="right-align">Domain</th>
             <th>Count</th>
             <th>Actions</th>
         </tr>
@@ -16,22 +15,8 @@
     </table>
 </div>
 
-<!--&lt;!&ndash; Таблица для embedded &ndash;&gt;-->
-<!--<div class="cookie-table-wrapper small-table">-->
-<!--    &lt;!&ndash;<div class="cookie-table-wrapper medium-table">&ndash;&gt;-->
-<!--    <table class="cookie-table">-->
-<!--        <thead>-->
-<!--        <tr>-->
-<!--            <th class="right-align">Cookies from embedded content</th>-->
-<!--            <th>Count</th>-->
-<!--            <th>Actions</th>-->
-<!--        </tr>-->
-<!--        </thead>-->
-<!--        <tbody id="embeddedCookieTableBody"></tbody>-->
-<!--    </table>-->
-<!--</div>-->
 
-<!-- Вкладки фильтрации -->
+<!-- Filter tabs -->
 <div class="cookie-tab-buttons">
     <button type="button" class="cookie-tab-btn active" data-type="essential">🔐 Essential (0)</button>
     <button type="button" class="cookie-tab-btn" data-type="analytics">📊 Analytics (0)</button>
@@ -39,12 +24,12 @@
     <button type="button" class="cookie-tab-btn" data-type="whitelist">✅ Whitelist (0)</button>
 </div>
 
-<!-- Основная таблица со всеми куками -->
+<!-- Main table with all cookies -->
 <div id="cookieTableWrapper" class="cookie-table-wrapper large-table">
     <table class="cookie-table">
+        <caption>All cookies by category</caption>
         <thead>
         <tr>
-            <!--        <th data-sort="name">Name ⬍</th>-->
             <th data-sort="domain">Domain</th>
             <th data-sort="count">Count</th>
             <th>Actions</th>
@@ -52,19 +37,13 @@
         </thead>
         <tbody id="cookieTableBody">
         <tr>
-            <td colspan="4">Loading...</td>
+            <td colspan="3">Loading...</td>
         </tr>
         </tbody>
     </table>
 </div>
-<!-- Панель удаления для текущей вкладки -->
+<!-- Delete panel for the current tab -->
 <div id="cookieDeletePanel" class="cookie-delete-panel" style="display: none;">
     <button id="deleteByTypeBtn" class="cookie-btn delete-by-type">Delete</button>
 </div>
 
-<!--&lt;!&ndash; Панель управления &ndash;&gt;-->
-<!--<div class="cookie-controls">-->
-<!--  <button class="cookie-btn delete-thirdparty">🧼 Delete Third-Party Cookies</button>-->
-<!--  <button class="cookie-btn delete-nonwhitelisted">🚫 Delete All Except Whitelist</button>-->
-<!--  <button class="cookie-btn refresh-cookies">🔄 Refresh Cookies</button>-->
-<!--</div>-->

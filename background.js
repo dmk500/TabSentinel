@@ -19,10 +19,10 @@ const suspendedTabs = new Set();
 const DEFAULT_EXCLUDED_SITES = DEFAULT_CONFIG.DEFAULT_EXCLUDED_SITES;
 
 function logOnce(tabId, message) {
-    if (!loggedTabs.has(tabId)) {
-        console.log(message);
-        loggedTabs.set(tabId, true);
-    }
+    // if (!loggedTabs.has(tabId)) {
+    //     console.log(message);
+    //     loggedTabs.set(tabId, true);
+    // }
 }
 
 

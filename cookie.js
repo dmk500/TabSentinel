@@ -1,8 +1,10 @@
-import {classifyCookies} from './cookieClassifier.js';
-// Debugging flag and log wrapper
-const DEBUG = true;
+import { classifyCookies } from './cookieClassifier.js';
+import { DEFAULT_CONFIG } from './config.js';
+
 function log(...args) {
-    if (DEBUG) console.log("[COOKIE]", ...args);
+    if (DEFAULT_CONFIG.ENABLE_COOKIE_LOGS) {
+        console.log("[COOKIE]", ...args);
+    }
 }
 
 let allGroupedCookies = [];
@@ -10,44 +12,93 @@ let currentType = "essential";
 let currentSortField = "name";
 let sortAsc = true;
 
-// On tab load, inject cookie UI and run classification
-log("DOMContentLoaded — initializing cookie tab");
-document.addEventListener("DOMContentLoaded", () => {
-    const cookieTab = document.getElementById("tab2");
-    if (!cookieTab) return;
+// 🔄 Safe initialization
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => loadCookieTab());
+} else {
     loadCookieTab();
-});
+}
 
-// Loads cookie.html and runs embedded resource scan
-log("Loading cookie.html into tab2");
+window.loadCookieTab = loadCookieTab;
+
 async function loadCookieTab() {
+    log("🔄 Loading cookie.html...");
     const response = await fetch(chrome.runtime.getURL("cookie.html"));
     const html = await response.text();
     document.getElementById("tab2").innerHTML = html;
+    log("✅ Injected cookie.html");
     await loadAndClassifyCookies();
     attachEventHandlers();
 }
 
-// Check if cookie domain matches the current page host
-function domainMatches(cookieDomain, pageHost) {
-    const clean = cookieDomain.replace(/^\./, "").toLowerCase();
-    return (
-        clean === pageHost ||
-        pageHost.endsWith("." + clean) ||   // original: domain is suffix of pageHost
-        clean.endsWith("." + pageHost)      // NEW: cookie is from subdomain of pageHost
-    );
+window.loadCookieTab = loadCookieTab;
+// Safe initialization if DOM already loaded
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+        const cookieTab = document.getElementById("tab2");
+        if (!cookieTab) return;
+        loadCookieTab();
+    });
+} else {
+    const cookieTab = document.getElementById("tab2");
+    if (cookieTab) loadCookieTab();
 }
 
-// Get cookies and extract embedded domains from the page
-log("Running loadAndClassifyCookies");
+function attachEventHandlers() {
+    const clickHandlers = [
+        { match: el => el.closest(".cookie-tab-btn"), handler: handleTabSwitch },
+        { match: el => el.closest("th[data-sort]"), handler: handleSort },
+        { match: el => el.classList.contains("delete-btn"), handler: handleBulkDelete },
+        { match: el => el.classList.contains("delete-single-btn"), handler: handleSingleDelete },
+        { match: el => el.classList.contains("whitelist-btn") || el.classList.contains("whitelist-single-btn"), handler: handleAddToWhitelist },
+        { match: el => el.classList.contains("remove-whitelist-btn"), handler: handleRemoveFromWhitelist },
+        { match: el => el.closest(".expand-toggle"), handler: handleRowExpand }
+    ];
+
+    document.addEventListener("click", (e) => {
+        const target = e.target;
+        for (const { match, handler } of clickHandlers) {
+            if (match(target)) {
+                handler(e);
+                break;
+            }
+        }
+    });
+
+    document.querySelector(".refresh-cookies")?.addEventListener("click", loadAndClassifyCookies);
+}
+
+function handleTabSwitch(e) {
+    const btn = e.target.closest(".cookie-tab-btn");
+    if (!btn) return;
+    document.querySelectorAll(".cookie-tab-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentType = btn.dataset.type;
+    renderCookieTable();
+}
+
+function handleRowExpand(e) {
+    const row = e.target.closest("tr.cookie-row");
+    if (!row) return;
+    const domain = row.querySelector("td[data-domain]")?.dataset.domain;
+    const next = row.parentElement.querySelector(`tr.cookie-details[data-domain="${domain}"]`);
+    const arrow = row.querySelector(".arrow");
+
+    if (next) {
+        next.classList.toggle("visible");
+        row.classList.toggle("open");
+        if (arrow) arrow.innerText = next.classList.contains("visible") ? "▼" : "▶";
+    }
+}
+
 function loadAndClassifyCookies() {
-    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         const tab = tabs[0];
         const url = new URL(tab.url);
         const host = url.hostname;
 
         chrome.scripting.executeScript({
-            target: {tabId: tab.id},
+            target: { tabId: tab.id },
             func: () => {
                 const domains = new Set();
                 ['src', 'href', 'action'].forEach(attr => {
@@ -56,8 +107,7 @@ function loadAndClassifyCookies() {
                             const val = el.getAttribute(attr);
                             const url = new URL(val, document.baseURI);
                             if (url.hostname !== location.hostname) domains.add(url.hostname);
-                        } catch (_) {
-                        }
+                        } catch (_) {}
                     });
                 });
                 if (performance.getEntriesByType) {
@@ -65,8 +115,7 @@ function loadAndClassifyCookies() {
                         try {
                             const url = new URL(entry.name);
                             if (url.hostname !== location.hostname) domains.add(url.hostname);
-                        } catch (_) {
-                        }
+                        } catch (_) {}
                     });
                 }
                 return Array.from(domains);
@@ -82,9 +131,46 @@ function loadAndClassifyCookies() {
     });
 }
 
-// Renders both main and embedded cookie tables
-log("Rendering current tab cookies", { host, embeddedHosts, rawCookiesCount: rawCookies.length });
+function domainMatches(cookieDomain, pageHost) {
+    const clean = cookieDomain.replace(/^\./, "").toLowerCase();
+    return clean === pageHost || pageHost.endsWith("." + clean) || clean.endsWith("." + pageHost);
+}
+
+
+function updateTabCounters() {
+    const tabs = { essential: 0, analytics: 0, suspicious: 0, whitelist: 0 };
+    const labels = {
+        essential: "🔐 Essential",
+        analytics: "📊 Analytics",
+        suspicious: "⚠️ Suspicious",
+        whitelist: "✅ Whitelist"
+    };
+
+    chrome.storage.sync.get(["cookieWhitelist"], (data) => {
+        const whitelist = new Set((data.cookieWhitelist || []).map(d => d.trim().toLowerCase()));
+        allGroupedCookies.forEach(c => {
+            if (whitelist.has(c.domain.toLowerCase())) tabs.whitelist++;
+            else if (tabs.hasOwnProperty(c.type)) tabs[c.type]++;
+        });
+
+        document.querySelectorAll(".cookie-tab-btn").forEach(btn => {
+            const type = btn.dataset.type;
+            if (tabs[type] !== undefined) {
+                btn.innerText = `${labels[type]} (${tabs[type]})`;
+            }
+        });
+    });
+}
+
+
+
 function renderCurrentTabCookies(rawCookies, host, embeddedHosts) {
+    log("Rendering current tab cookies", {
+        host,
+        embeddedHosts,
+        rawCookiesCount: rawCookies.length
+    });
+
     const mainTbody = document.getElementById("currentTabCookieTableBody");
     if (!mainTbody) return;
 
@@ -140,37 +226,88 @@ function renderCurrentTabCookies(rawCookies, host, embeddedHosts) {
             row.innerHTML = `
 <td data-domain="${group.domain}"><span class="arrow">▶</span><strong>${group.domain}</strong>${label}</td>
 <td class="count-cell">${group.cookies.length}</td>
-<td><span class="cookie-actions">${actionHtml}</span></td>
-            `;
+<td><span class="cookie-actions">${actionHtml}</span></td>`;
             mainTbody.appendChild(row);
 
             const detailRow = document.createElement("tr");
             detailRow.className = "cookie-details";
+            detailRow.dataset.domain = group.domain;
             detailRow.innerHTML = `
-<td colspan="3">
-  ${group.cookies.map(c => `
-    <div class="cookie-item">
-        <div><strong>${c.name}</strong> = ${c.value}</div>
-        <div class="cookie-meta">
-            <strong>${c.domain}</strong> | Path: ${c.path}, Secure: ${c.secure}, HttpOnly: ${c.httpOnly}
-            <span class="cookie-actions-inline">
-                <button class="whitelist-single-btn" data-name="${c.name}" data-domain="${c.domain}">✅</button>
-                <button class="delete-single-btn" data-name="${c.name}" data-domain="${c.domain}">🗑</button>
-            </span>
-        </div>
-    </div>
-  `).join('')}
-</td>
-            `;
+  <td colspan="3">
+    ${group.cookies.map(c => `
+      <div class="cookie-item">
+          <div><strong>${c.name}</strong> = ${c.value}</div>
+          <div class="cookie-meta">
+              <strong>${c.domain}</strong> | Path: ${c.path}, Secure: ${c.secure}, HttpOnly: ${c.httpOnly}
+              <span class="cookie-actions-inline">
+                  <button class="whitelist-single-btn" data-name="${c.name}" data-domain="${c.domain}">✅</button>
+                  <button class="delete-single-btn" data-name="${c.name}" data-domain="${c.domain}">🗑</button>
+              </span>
+          </div>
+      </div>`).join("")}
+  </td>`;
             mainTbody.appendChild(detailRow);
         });
     });
 }
 
 
-// Render summary cookie table for type tabs
-log("Rendering cookie table for type:", currentType);
+function handleSort(e) {
+    const th = e.target.closest("th[data-sort]");
+    if (!th) return;
+    currentSortField = th.dataset.sort;
+    sortAsc = !sortAsc;
+    log("Sorting by:", currentSortField, sortAsc ? "ASC" : "DESC");
+    renderCookieTable();
+}
+
+function handleBulkDelete(e) {
+    const domain = e.target.dataset.domain;
+    log("Bulk delete for domain:", domain);
+    chrome.cookies.getAll({domain}, (cookies) => {
+        cookies.forEach(c => {
+            chrome.cookies.remove({
+                url: (c.secure ? "https://" : "http://") + c.domain + c.path,
+                name: c.name
+            });
+        });
+        setTimeout(loadAndClassifyCookies, 300);
+    });
+}
+
+function handleSingleDelete(e) {
+    const domain = e.target.dataset.domain;
+    const name = e.target.dataset.name;
+    log("Delete single cookie:", name, domain);
+    chrome.cookies.remove({url: `https://${domain}`, name}, () => {
+        setTimeout(loadAndClassifyCookies, 300);
+    });
+}
+
+function handleAddToWhitelist(e) {
+    const domain = e.target.dataset.domain;
+    log("Adding to whitelist:", domain);
+    chrome.storage.sync.get(["cookieWhitelist"], (data) => {
+        const whitelist = new Set((data.cookieWhitelist || []).map(d => d.trim().toLowerCase()));
+        whitelist.add(domain.toLowerCase());
+        chrome.storage.sync.set({cookieWhitelist: Array.from(whitelist)}, loadAndClassifyCookies);
+    });
+}
+
+function handleRemoveFromWhitelist(e) {
+    const domain = e.target.dataset.domain;
+    log("Removing from whitelist:", domain);
+    chrome.storage.sync.get(["cookieWhitelist"], (data) => {
+        const whitelist = new Set((data.cookieWhitelist || []).map(d => d.trim().toLowerCase()));
+        whitelist.delete(domain.toLowerCase());
+        chrome.storage.sync.set({cookieWhitelist: Array.from(whitelist)}, loadAndClassifyCookies);
+    });
+}
+
+
+
 function renderCookieTable() {
+    log("Rendering cookie table for type:", currentType);
     chrome.storage.sync.get(["cookieWhitelist"], (data) => {
         const whitelist = new Set((data.cookieWhitelist || []).map(d => d.trim().toLowerCase()));
         const filtered = allGroupedCookies.filter(c => {
@@ -187,7 +324,7 @@ function renderCookieTable() {
                     count: c.count,
                     name: "Multiple cookies",
                     type: c.type,
-                    pathList: [...(c.pathList || [])],
+                    pathList: [...(c.pathList || [])]
                 };
             } else {
                 grouped[domain].count += c.count;
@@ -195,84 +332,104 @@ function renderCookieTable() {
         });
 
         updateTabCounters();
-        renderFilteredTable(Object.values(grouped));
+
+        const tbody = document.getElementById("cookieTableBody");
+        if (tbody) {
+            tbody.innerHTML = "";
+            renderFilteredTable(Object.values(grouped), tbody);
+        }
     });
 }
 
-// Renders main tab table by type
-log("Rendering filtered cookies", cookies.length);
-function renderFilteredTable(cookies) {
+function renderFilteredTable(cookieList) {
+    log("Rendering filtered table, total domains:", cookieList.length);
     const tbody = document.getElementById("cookieTableBody");
-    if (!tbody) return;
+    tbody.innerHTML = "";
 
-    const sorted = cookies.sort((a, b) => {
-        const valA = a[currentSortField].toString().toLowerCase();
-        const valB = b[currentSortField].toString().toLowerCase();
-        return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
-    });
+    cookieList.forEach(cookie => {
+        const tr = document.createElement("tr");
+        tr.classList.add("cookie-row", "expand-toggle");
 
-    tbody.innerHTML = sorted.length === 0
-        ? `<tr><td colspan="4">No cookies found.</td></tr>`
-        : "";
+        // Колонка с доменом
+        const domainTd = document.createElement("td");
+        domainTd.setAttribute("data-domain", cookie.domain);
+        domainTd.innerHTML = `<span class="arrow">▶</span><strong>${cookie.domain}</strong>`;
+        tr.appendChild(domainTd);
 
+        // Колонка с числом cookies
+        const countTd = document.createElement("td");
+        countTd.classList.add("count-cell");
+        countTd.textContent = cookie.count;
+        tr.appendChild(countTd);
 
-    sorted.forEach(cookie => {
-        // Основная строка
-        const row = document.createElement("tr");
-        // row.className = "cookie-row";
-        row.className = "cookie-row expand-toggle";
+        // Колонка с действиями
+        const actionsTd = document.createElement("td");
+        actionsTd.classList.add("actions-cell");
+        const actionsSpan = document.createElement("span");
+        actionsSpan.className = "cookie-actions";
 
-        let actionHtml = '';
-        if (currentType === "whitelist") {
-            actionHtml = `
-    <button class="remove-whitelist-btn" title="Remove from whitelist" data-domain="${cookie.domain}">❎</button>
-  `;
-        } else {
-            actionHtml = `
-    <button class="whitelist-btn" data-domain="${cookie.domain}">✅</button>
-    <button class="delete-btn" data-domain="${cookie.domain}">🗑</button>
-  `;
-        }
+        // Кнопка whitelist
+        const whitelistBtn = document.createElement("button");
+        whitelistBtn.className = "whitelist-btn";
+        whitelistBtn.textContent = "✅";
+        whitelistBtn.dataset.domain = cookie.domain;
+        actionsSpan.appendChild(whitelistBtn);
 
-        row.innerHTML = `
-        <td data-domain="${cookie.domain}">
-            <span class="arrow">▶</span>
-            <strong>${cookie.domain}</strong>
-        </td>
-        <td class="count-cell">${cookie.count}</td>
-            <td>
-            <span class="cookie-actions">${actionHtml}</span>
-        </td>
-        `;
-        tbody.appendChild(row);
+        // Кнопка delete
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete-btn";
+        deleteBtn.textContent = "🗑";
+        deleteBtn.dataset.domain = cookie.domain;
+        actionsSpan.appendChild(deleteBtn);
 
-        // Строка с деталями
-        const detailRow = document.createElement("tr");
-        detailRow.className = "cookie-details";
-        detailRow.innerHTML = `<td colspan="3"><div class="cookie-loading">Loading...</div></td>`;
-        tbody.appendChild(detailRow);
+        actionsTd.appendChild(actionsSpan);
+        tr.appendChild(actionsTd);
 
-        // Загрузка и отрисовка cookie деталей
-        chrome.cookies.getAll({domain: cookie.domain}, (domainCookies) => {
-            const html = domainCookies.map(c => `
-            <div class="cookie-item">
-                <div><strong>${c.name}</strong> = ${c.value}</div>
-                <div class="cookie-meta">
-                    <strong>${c.domain}</strong>, Path: ${c.path}, Secure: ${c.secure}, HttpOnly: ${c.httpOnly}
+        tbody.appendChild(tr);
+
+        // Создаём скрытую строку с подробностями
+        const detailTr = document.createElement("tr");
+        detailTr.classList.add("cookie-details");
+        detailTr.setAttribute("data-domain", cookie.domain);
+
+        const detailTd = document.createElement("td");
+        detailTd.setAttribute("colspan", "3");
+
+        if (cookie.cookies) {
+            cookie.cookies.forEach(c => {
+                const item = document.createElement("div");
+                item.className = "cookie-item";
+
+                const valueDiv = document.createElement("div");
+                valueDiv.innerHTML = `<strong>${c.name}</strong> = ${c.value}`;
+                item.appendChild(valueDiv);
+
+                const metaDiv = document.createElement("div");
+                metaDiv.className = "cookie-meta";
+                metaDiv.innerHTML = `
+                    <strong>${c.domain}</strong> | Path: ${c.path}, Secure: ${c.secure}, HttpOnly: ${c.httpOnly}
                     <span class="cookie-actions-inline">
                         <button class="whitelist-single-btn" data-name="${c.name}" data-domain="${c.domain}">✅</button>
                         <button class="delete-single-btn" data-name="${c.name}" data-domain="${c.domain}">🗑</button>
                     </span>
-                </div>
-            </div>
-        `).join("");
+                `;
+                item.appendChild(metaDiv);
 
-            detailRow.innerHTML = `<td colspan="3">${html || "No cookies found."}</td>`;
-        });
+                detailTd.appendChild(item);
+            });
+        }
+
+        detailTr.appendChild(detailTd);
+        tbody.appendChild(detailTr);
     });
-    updateDeleteButton(cookies);
+    updateDeleteButton(cookieList);
 
 }
+
+
+
+
+
 
 function updateDeleteButton(cookies) {
     const panel = document.getElementById("cookieDeletePanel");
@@ -337,166 +494,4 @@ function updateDeleteButton(cookies) {
 }
 
 
-// Updates tab counters
-function updateTabCounters() {
-    const tabs = {essential: 0, analytics: 0, suspicious: 0, whitelist: 0};
 
-    chrome.storage.sync.get(["cookieWhitelist"], (data) => {
-        const whitelist = new Set((data.cookieWhitelist || []).map(d => d.trim().toLowerCase()));
-        allGroupedCookies.forEach(c => {
-            if (whitelist.has(c.domain.toLowerCase())) tabs.whitelist++;
-            else tabs[c.type]++;
-        });
-
-        document.querySelectorAll(".cookie-tab-btn").forEach(btn => {
-            const type = btn.dataset.type;
-            if (tabs[type] !== undefined) {
-                const label = btn.innerText.split(" ")[0];
-                btn.innerHTML = `${label} ${capitalize(type)} (${tabs[type]})`;
-            }
-        });
-    });
-}
-
-// Capitalize first letter
-function capitalize(s) {
-    return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-// Sets up click handlers
-log("Attaching global click handlers");
-
-// List of element matchers and corresponding handler functions
-const clickHandlers = [
-    {
-        match: el => el.closest(".cookie-tab-btn"),
-        handler: handleTabSwitch
-    },
-    {
-        match: el => el.closest("th[data-sort]"),
-        handler: handleSort
-    },
-    {
-        match: el => el.classList.contains("delete-btn"),
-        handler: handleBulkDelete
-    },
-    {
-        match: el => el.classList.contains("delete-single-btn"),
-        handler: handleSingleDelete
-    },
-    {
-        match: el => el.classList.contains("whitelist-btn") || el.classList.contains("whitelist-single-btn"),
-        handler: handleAddToWhitelist
-    },
-    {
-        match: el => el.classList.contains("remove-whitelist-btn"),
-        handler: handleRemoveFromWhitelist
-    },
-    {
-        match: el => el.closest("tr.cookie-row"),
-        handler: handleRowExpand
-    }
-];
-
-// Global document click handler with dispatch map
-function attachEventHandlers() {
-    log("Attaching global click handlers via dispatch map");
-
-    document.addEventListener("click", (e) => {
-        const target = e.target;
-        for (const { match, handler } of clickHandlers) {
-            if (match(target)) {
-                handler(e);
-                break;
-            }
-        }
-    });
-
-    document.querySelector(".refresh-cookies")?.addEventListener("click", loadAndClassifyCookies);
-    window.loadCookieTab = loadCookieTab;
-}
-
-// Handler: switch between cookie category tabs
-function handleTabSwitch(e) {
-    const btn = e.target.closest(".cookie-tab-btn");
-    if (!btn) return;
-    log("Tab switch to:", btn.dataset.type);
-
-    document.querySelectorAll(".cookie-tab-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-
-    currentType = btn.dataset.type;
-    renderCookieTable();
-}
-
-// Handler: sort columns in filtered cookie table
-function handleSort(e) {
-    const th = e.target.closest("th[data-sort]");
-    if (!th) return;
-    currentSortField = th.dataset.sort;
-    sortAsc = !sortAsc;
-    log("Sorting by:", currentSortField, sortAsc ? "ASC" : "DESC");
-    renderCookieTable();
-}
-
-// Handler: delete all cookies for a domain
-function handleBulkDelete(e) {
-    const domain = e.target.dataset.domain;
-    log("Bulk delete for domain:", domain);
-    chrome.cookies.getAll({ domain }, (cookies) => {
-        cookies.forEach(c => {
-            chrome.cookies.remove({
-                url: (c.secure ? "https://" : "http://") + c.domain + c.path,
-                name: c.name
-            });
-        });
-        setTimeout(loadAndClassifyCookies, 300);
-    });
-}
-
-// Handler: delete a single cookie
-function handleSingleDelete(e) {
-    const domain = e.target.dataset.domain;
-    const name = e.target.dataset.name;
-    log("Delete single cookie:", name, domain);
-    chrome.cookies.remove({ url: `https://${domain}`, name }, () => {
-        setTimeout(loadAndClassifyCookies, 300);
-    });
-}
-
-// Handler: add domain to whitelist
-function handleAddToWhitelist(e) {
-    const domain = e.target.dataset.domain;
-    log("Adding to whitelist:", domain);
-    chrome.storage.sync.get(["cookieWhitelist"], (data) => {
-        const whitelist = new Set((data.cookieWhitelist || []).map(d => d.trim().toLowerCase()));
-        whitelist.add(domain.toLowerCase());
-        chrome.storage.sync.set({ cookieWhitelist: Array.from(whitelist) }, loadAndClassifyCookies);
-    });
-}
-
-// Handler: remove domain from whitelist
-function handleRemoveFromWhitelist(e) {
-    const domain = e.target.dataset.domain;
-    log("Removing from whitelist:", domain);
-    chrome.storage.sync.get(["cookieWhitelist"], (data) => {
-        const whitelist = new Set((data.cookieWhitelist || []).map(d => d.trim().toLowerCase()));
-        whitelist.delete(domain.toLowerCase());
-        chrome.storage.sync.set({ cookieWhitelist: Array.from(whitelist) }, loadAndClassifyCookies);
-    });
-}
-
-// Handler: toggle expand/collapse for cookie rows
-function handleRowExpand(e) {
-    const row = e.target.closest("tr.cookie-row");
-    if (!row) return;
-    const next = row.nextElementSibling;
-    const arrow = row.querySelector(".arrow");
-    log("Toggle expand row:", row);
-
-    if (next && next.classList.contains("cookie-details")) {
-        next.classList.toggle("visible");
-        row.classList.toggle("open");
-        if (arrow) arrow.innerText = next.classList.contains("visible") ? "▼" : "▶";
-    }
-}
