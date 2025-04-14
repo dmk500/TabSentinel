@@ -32,9 +32,12 @@ function attachEventHandlers() {
         {match: el => el.classList.contains("delete-single-btn"), handler: handleSingleDelete},
         {match: el => el.classList.contains("whitelist-btn") || el.classList.contains("whitelist-single-btn"), handler: handleAddToWhitelist},
         {match: el => el.classList.contains("remove-whitelist-btn"), handler: handleRemoveFromWhitelist},
-        {match: el => el.closest(".expand-toggle"), handler: handleRowExpand}
+        {match: el => el.closest(".expand-toggle"), handler: handleRowExpand},
+        {match: el => el.classList.contains("delete-btn"), handler: handleBulkDelete},
+        {match: el => el.classList.contains("delete-single-btn"), handler: handleSingleDelete},
+        {match: el => el.classList.contains("whitelist-btn") || el.classList.contains("whitelist-single-btn"), handler: handleAddToWhitelist},
+        {match: el => el.classList.contains("remove-whitelist-btn"), handler: handleRemoveFromWhitelist},
     ];
-
     document.addEventListener("click", (e) => {
         const target = e.target;
         for (const {match, handler} of clickHandlers) {
@@ -44,7 +47,6 @@ function attachEventHandlers() {
             }
         }
     });
-
     document.querySelector(".refresh-cookies")?.addEventListener("click", loadAndClassifyCookies);
 }
 
@@ -107,13 +109,15 @@ function loadAndClassifyCookies() {
         }, (results) => {
             const embeddedHosts = results?.[0]?.result || [];
             chrome.cookies.getAll({}, (cookies) => {
-                allGroupedCookies = classifyCookies(cookies, [host]);
+                const grouped = classifyCookies(cookies, [host]); // ✅
+                allGroupedCookies = grouped;                      // ✅
                 renderCookieTable();
-                renderCurrentTabCookies(cookies, host, embeddedHosts);
+                renderCurrentTabCookies(grouped, host, embeddedHosts); // ✅ ← теперь всё будет работать!
             });
         });
     });
 }
+
 
 function domainMatches(cookieDomain, pageHost) {
     const clean = cookieDomain.replace(/^\./, "").toLowerCase();
@@ -217,11 +221,11 @@ function renderCurrentTabCookies(rawCookies, host, embeddedHosts) {
                 <td class="text-center">
                     <div class="d-flex justify-content-center gap-1">
                         ${
-                            isWhitelisted
-                                ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 delete-btn" data-domain="${group.domain}" title="Delete all cookies">🗑</button>`
-                                : `<button class="btn btn-outline-success btn-sm py-0 px-1 whitelist-btn" data-domain="${group.domain}" title="Add to whitelist">✅</button>
+                isWhitelisted
+                    ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 delete-btn" data-domain="${group.domain}" title="Delete all cookies">🗑</button>`
+                    : `<button class="btn btn-outline-success btn-sm py-0 px-1 whitelist-btn" data-domain="${group.domain}" title="Add to whitelist">✅</button>
                                    <button class="btn btn-outline-danger btn-sm py-0 px-1 delete-btn" data-domain="${group.domain}" title="Delete all cookies">🗑</button>`
-                        }
+            }
                     </div>
                 </td>`;
             mainTbody.appendChild(row);
@@ -242,12 +246,12 @@ function renderCurrentTabCookies(rawCookies, host, embeddedHosts) {
                                     </td>
                                     <td class="text-end align-top" style="white-space: nowrap;">
                                         ${
-                                            isWhitelisted ? "" : `
+                isWhitelisted ? "" : `
                                                 <button class="btn btn-outline-success btn-sm py-0 px-1 whitelist-single-btn" 
                                                         data-name="${c.name}" data-domain="${c.domain}" 
                                                         title="Add to whitelist">✅</button>
                                             `
-                                        }
+            }
                                         <button class="btn btn-outline-danger btn-sm py-0 px-1 delete-single-btn" 
                                                 data-name="${c.name}" data-domain="${c.domain}" 
                                                 title="Delete this cookie">🗑</button>
@@ -261,6 +265,7 @@ function renderCurrentTabCookies(rawCookies, host, embeddedHosts) {
         });
     });
 }
+
 
 function renderFilteredTable(cookieList) {
     log("Rendering filtered table, total domains:", cookieList.length);
@@ -335,11 +340,11 @@ function renderFilteredTable(cookieList) {
                             </td>
                             <td class="text-end align-top" style="white-space: nowrap;">
                                 ${
-                                    currentType === "whitelist"
-                                        ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 remove-whitelist-btn" 
+            currentType === "whitelist"
+                ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 remove-whitelist-btn" 
                                                   data-name="${c.name}" data-domain="${c.domain}" 
                                                   title="Remove from whitelist">↩️</button>`
-                                        : `
+                : `
                                             <button class="btn btn-outline-success btn-sm py-0 px-1 whitelist-single-btn" 
                                                     data-name="${c.name}" data-domain="${c.domain}" 
                                                     title="Add to whitelist">✅</button>
@@ -347,7 +352,7 @@ function renderFilteredTable(cookieList) {
                                                     data-name="${c.name}" data-domain="${c.domain}" 
                                                     title="Delete this cookie">🗑</button>
                                           `
-                                }
+        }
                             </td>
                         </tr>
                     `).join("")}
@@ -384,32 +389,34 @@ function handleBulkDelete(e) {
 }
 
 function handleSingleDelete(e) {
-    const domain = e.target.dataset.domain;
-    const name = e.target.dataset.name;
-    log("Delete single cookie:", name, domain);
-    chrome.cookies.remove({url: `https://${domain}`, name}, () => {
-        setTimeout(loadAndClassifyCookies, 300);
-    });
+    const btn = e.target;
+    const domain = btn.dataset.domain;
+    const name = btn.dataset.name;
+    deleteCookie(domain, name); // 🔄 более универсально, с перерисовкой
 }
 
 function handleAddToWhitelist(e) {
-    const domain = e.target.dataset.domain;
-    log("Adding to whitelist:", domain);
-    chrome.storage.sync.get(["cookieWhitelist"], (data) => {
-        const whitelist = new Set((data.cookieWhitelist || []).map(d => d.trim().toLowerCase()));
-        whitelist.add(domain.toLowerCase());
-        chrome.storage.sync.set({cookieWhitelist: Array.from(whitelist)}, loadAndClassifyCookies);
-    });
+    const btn = e.target;
+    const domain = btn.dataset.domain;
+    const name = btn.dataset.name;
+
+    if (name) {
+        addCookieToWhitelist(domain, name); // 🔄 только конкретную куку
+    } else {
+        addDomainToWhitelist(domain); // 🔄 весь домен
+    }
 }
 
 function handleRemoveFromWhitelist(e) {
-    const domain = e.target.dataset.domain;
-    log("Removing from whitelist:", domain);
-    chrome.storage.sync.get(["cookieWhitelist"], (data) => {
-        const whitelist = new Set((data.cookieWhitelist || []).map(d => d.trim().toLowerCase()));
-        whitelist.delete(domain.toLowerCase());
-        chrome.storage.sync.set({cookieWhitelist: Array.from(whitelist)}, loadAndClassifyCookies);
-    });
+    const btn = e.target;
+    const domain = btn.dataset.domain;
+    const name = btn.dataset.name;
+
+    if (name) {
+        removeCookieFromWhitelist(domain, name); // ❌ только имя@домен
+    } else {
+        removeDomainFromWhitelist(domain); // ❌ весь домен
+    }
 }
 
 function renderCookieTable() {
@@ -521,6 +528,88 @@ function updateDeleteButton(cookies) {
         });
     };
 }
+
+function addCookieToWhitelist(domain, name) {
+    const cleanDomain = domain.replace(/^\./, "").toLowerCase();
+    const key = `${name}@${cleanDomain}`;
+    chrome.storage.sync.get(["cookieWhitelist"], (data) => {
+        const list = new Set(data.cookieWhitelist || []);
+        list.add(key);
+        chrome.storage.sync.set({cookieWhitelist: Array.from(list)}, () => {
+            loadAndClassifyCookies();
+        });
+    });
+}
+
+
+function addDomainToWhitelist(domain) {
+    chrome.storage.sync.get(["cookieWhitelist"], (data) => {
+        const list = new Set(data.cookieWhitelist || []);
+        list.add(domain.toLowerCase());
+        chrome.storage.sync.set({cookieWhitelist: Array.from(list)}, () => {
+            loadAndClassifyCookies(); // ✅ заменить
+        });
+    });
+}
+
+function removeDomainFromWhitelist(domain) {
+    chrome.storage.sync.get(["cookieWhitelist"], (data) => {
+        const list = new Set(data.cookieWhitelist || []);
+        list.delete(domain.toLowerCase());
+        chrome.storage.sync.set({cookieWhitelist: Array.from(list)}, () => {
+            loadAndClassifyCookies(); // ✅ заменить
+        });
+    });
+}
+
+function removeCookieFromWhitelist(domain, name) {
+    const cleanDomain = domain.replace(/^\./, "").toLowerCase();
+    const key = `${name}@${cleanDomain}`;
+    chrome.storage.sync.get(["cookieWhitelist"], (data) => {
+        const list = new Set(data.cookieWhitelist || []);
+        list.delete(key);
+        chrome.storage.sync.set({cookieWhitelist: Array.from(list)}, () => {
+            loadAndClassifyCookies();
+        });
+    });
+}
+
+
+function deleteCookiesByDomain(domain) {
+    chrome.cookies.getAll({domain}, (cookies) => {
+        cookies.forEach(cookie => {
+            chrome.cookies.remove({
+                url: (cookie.secure ? "https://" : "http://") + cookie.domain + cookie.path,
+                name: cookie.name
+            });
+        });
+        renderCookieTable();
+    });
+}
+
+function deleteCookie(domain, name) {
+    chrome.cookies.getAll({domain}, (cookies) => {
+        cookies
+            .filter(c => c.name === name)
+            .forEach(cookie => {
+                chrome.cookies.remove({
+                    url: (cookie.secure ? "https://" : "http://") + cookie.domain + cookie.path,
+                    name: cookie.name
+                });
+            });
+        renderCookieTable();
+    });
+}
+
+function isWhitelisted(domain, name = null, whitelist = []) {
+    const normalize = str => str.replace(/^\./, "").toLowerCase();
+    const keys = new Set((whitelist || []).map(w => normalize(w)));
+    if (name) {
+        return keys.has(normalize(`${name}@${domain}`));
+    }
+    return keys.has(normalize(domain));
+}
+
 
 window.addEventListener("load", () => {
     const cookieTabBtn = document.getElementById("nav-cookie-tab");
