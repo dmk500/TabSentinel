@@ -1,5 +1,5 @@
-import { classifyCookies } from './cookieClassifier.js';
-import { DEFAULT_CONFIG } from './config.js';
+import {classifyCookies} from './cookieClassifier.js';
+import {DEFAULT_CONFIG} from '../config.js';
 
 function log(...args) {
     if (DEFAULT_CONFIG.ENABLE_COOKIE_LOGS) {
@@ -12,52 +12,32 @@ let currentType = "essential";
 let currentSortField = "name";
 let sortAsc = true;
 
-// 🔄 Safe initialization
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => loadCookieTab());
-} else {
-    loadCookieTab();
-}
+// 👇 Добавим ленивую инициализацию
+window.cookieTabInitialized = false;
 
-window.loadCookieTab = loadCookieTab;
+window.loadCookieTab = async function () {
+    if (window.cookieTabInitialized) return;
+    window.cookieTabInitialized = true;
 
-async function loadCookieTab() {
-    log("🔄 Loading cookie.html...");
-    const response = await fetch(chrome.runtime.getURL("cookie.html"));
-    const html = await response.text();
-    document.getElementById("tab2").innerHTML = html;
-    log("✅ Injected cookie.html");
+    log("🍪 Initializing Cookie Tab...");
     await loadAndClassifyCookies();
     attachEventHandlers();
-}
-
-window.loadCookieTab = loadCookieTab;
-// Safe initialization if DOM already loaded
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-        const cookieTab = document.getElementById("tab2");
-        if (!cookieTab) return;
-        loadCookieTab();
-    });
-} else {
-    const cookieTab = document.getElementById("tab2");
-    if (cookieTab) loadCookieTab();
-}
+};
 
 function attachEventHandlers() {
     const clickHandlers = [
-        { match: el => el.closest(".cookie-tab-btn"), handler: handleTabSwitch },
-        { match: el => el.closest("th[data-sort]"), handler: handleSort },
-        { match: el => el.classList.contains("delete-btn"), handler: handleBulkDelete },
-        { match: el => el.classList.contains("delete-single-btn"), handler: handleSingleDelete },
-        { match: el => el.classList.contains("whitelist-btn") || el.classList.contains("whitelist-single-btn"), handler: handleAddToWhitelist },
-        { match: el => el.classList.contains("remove-whitelist-btn"), handler: handleRemoveFromWhitelist },
-        { match: el => el.closest(".expand-toggle"), handler: handleRowExpand }
+        {match: el => el.closest(".cookie-tab-btn"), handler: handleTabSwitch},
+        {match: el => el.closest("th[data-sort]"), handler: handleSort},
+        {match: el => el.classList.contains("delete-btn"), handler: handleBulkDelete},
+        {match: el => el.classList.contains("delete-single-btn"), handler: handleSingleDelete},
+        {match: el => el.classList.contains("whitelist-btn") || el.classList.contains("whitelist-single-btn"), handler: handleAddToWhitelist},
+        {match: el => el.classList.contains("remove-whitelist-btn"), handler: handleRemoveFromWhitelist},
+        {match: el => el.closest(".expand-toggle"), handler: handleRowExpand}
     ];
 
     document.addEventListener("click", (e) => {
         const target = e.target;
-        for (const { match, handler } of clickHandlers) {
+        for (const {match, handler} of clickHandlers) {
             if (match(target)) {
                 handler(e);
                 break;
@@ -78,27 +58,29 @@ function handleTabSwitch(e) {
 }
 
 function handleRowExpand(e) {
-    const row = e.target.closest("tr.cookie-row");
+    // const row = e.target.closest("tr.cookie-row");
+    const row = e.target.closest("tr.expand-toggle");
+
     if (!row) return;
     const domain = row.querySelector("td[data-domain]")?.dataset.domain;
     const next = row.parentElement.querySelector(`tr.cookie-details[data-domain="${domain}"]`);
     const arrow = row.querySelector(".arrow");
 
     if (next) {
-        next.classList.toggle("visible");
+        next.classList.toggle("show");
         row.classList.toggle("open");
-        if (arrow) arrow.innerText = next.classList.contains("visible") ? "▼" : "▶";
+        if (arrow) arrow.innerText = next.classList.contains("show") ? "▼" : "▶";
     }
 }
 
 function loadAndClassifyCookies() {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
         const tab = tabs[0];
         const url = new URL(tab.url);
         const host = url.hostname;
 
         chrome.scripting.executeScript({
-            target: { tabId: tab.id },
+            target: {tabId: tab.id},
             func: () => {
                 const domains = new Set();
                 ['src', 'href', 'action'].forEach(attr => {
@@ -107,7 +89,8 @@ function loadAndClassifyCookies() {
                             const val = el.getAttribute(attr);
                             const url = new URL(val, document.baseURI);
                             if (url.hostname !== location.hostname) domains.add(url.hostname);
-                        } catch (_) {}
+                        } catch (_) {
+                        }
                     });
                 });
                 if (performance.getEntriesByType) {
@@ -115,7 +98,8 @@ function loadAndClassifyCookies() {
                         try {
                             const url = new URL(entry.name);
                             if (url.hostname !== location.hostname) domains.add(url.hostname);
-                        } catch (_) {}
+                        } catch (_) {
+                        }
                     });
                 }
                 return Array.from(domains);
@@ -136,9 +120,8 @@ function domainMatches(cookieDomain, pageHost) {
     return clean === pageHost || pageHost.endsWith("." + clean) || clean.endsWith("." + pageHost);
 }
 
-
 function updateTabCounters() {
-    const tabs = { essential: 0, analytics: 0, suspicious: 0, whitelist: 0 };
+    const tabs = {essential: 0, analytics: 0, suspicious: 0, whitelist: 0};
     const labels = {
         essential: "🔐 Essential",
         analytics: "📊 Analytics",
@@ -161,8 +144,6 @@ function updateTabCounters() {
         });
     });
 }
-
-
 
 function renderCurrentTabCookies(rawCookies, host, embeddedHosts) {
     log("Rendering current tab cookies", {
@@ -212,45 +193,56 @@ function renderCurrentTabCookies(rawCookies, host, embeddedHosts) {
         allRows.forEach(group => {
             const isWhitelisted = whitelist.has(group.domain);
             const row = document.createElement("tr");
-            row.classList.add("cookie-row", "expand-toggle");
-            if (isWhitelisted) row.classList.add("whitelisted");
-            else if (group.thirdParty) row.classList.add("third-party");
+            row.classList.add("expand-toggle", "table-active");
+            if (isWhitelisted) {
+                row.classList.add("table-success");
+            } else if (group.thirdParty) {
+                row.classList.add("table-warning");
+            }
 
-            let actionHtml = isWhitelisted
-                ? `<button class="delete-btn" data-domain="${group.domain}">🗑</button>`
-                : `<button class="whitelist-btn" data-domain="${group.domain}">✅</button>
-                   <button class="delete-btn" data-domain="${group.domain}">🗑</button>`;
+            const label = group.thirdParty ? `<div class="small text-muted">Third-party</div>` : "";
 
-            const label = group.thirdParty ? `<div class="small-note">Third-party</div>` : "";
-
+            // Создаём строку с доменом
             row.innerHTML = `
-<td data-domain="${group.domain}"><span class="arrow">▶</span><strong>${group.domain}</strong>${label}</td>
-<td class="count-cell">${group.cookies.length}</td>
-<td><span class="cookie-actions">${actionHtml}</span></td>`;
+                <td data-domain="${group.domain}">
+                    <span class="arrow me-1 text-muted">▶</span><strong>${group.domain}</strong>
+                    ${label}
+                </td>
+                <td class="text-center">${group.cookies.length}</td>
+                <td class="text-center">
+                    <div class="d-flex justify-content-center gap-1">
+                        ${
+                isWhitelisted
+                    ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 delete-btn" data-domain="${group.domain}">🗑</button>`
+                    : `<button class="btn btn-outline-success btn-sm py-0 px-1 whitelist-btn" data-domain="${group.domain}">✅</button>
+                                   <button class="btn btn-outline-danger btn-sm py-0 px-1 delete-btn" data-domain="${group.domain}">🗑</button>`
+            }
+                    </div>
+                </td>`;
             mainTbody.appendChild(row);
-
+            // Строка с деталями
             const detailRow = document.createElement("tr");
-            detailRow.className = "cookie-details";
+            detailRow.classList.add("collapse", "bg-white", "cookie-details");
             detailRow.dataset.domain = group.domain;
             detailRow.innerHTML = `
-  <td colspan="3">
-    ${group.cookies.map(c => `
-      <div class="cookie-item">
-          <div><strong>${c.name}</strong> = ${c.value}</div>
-          <div class="cookie-meta">
-              <strong>${c.domain}</strong> | Path: ${c.path}, Secure: ${c.secure}, HttpOnly: ${c.httpOnly}
-              <span class="cookie-actions-inline">
-                  <button class="whitelist-single-btn" data-name="${c.name}" data-domain="${c.domain}">✅</button>
-                  <button class="delete-single-btn" data-name="${c.name}" data-domain="${c.domain}">🗑</button>
-              </span>
-          </div>
-      </div>`).join("")}
-  </td>`;
+                <td colspan="3">
+                    ${group.cookies.map(c => `
+                        <div class="border rounded p-2 mb-2 small bg-light">
+                            <div><strong>${c.name}</strong> = <code>${c.value}</code></div>
+                            <div class="text-muted">
+                                <strong>${c.domain}</strong> | Path: ${c.path}, Secure: ${c.secure}, HttpOnly: ${c.httpOnly}
+                            </div>
+                            <div class="mt-1 d-flex gap-1">
+                                <button class="btn btn-outline-success btn-sm py-0 px-1 whitelist-single-btn" data-name="${c.name}" data-domain="${c.domain}">✅</button>
+                                <button class="btn btn-outline-danger btn-sm py-0 px-1 delete-single-btn" data-name="${c.name}" data-domain="${c.domain}">🗑</button>
+                            </div>
+                        </div>
+                    `).join("")}
+                </td>`;
             mainTbody.appendChild(detailRow);
         });
     });
 }
-
 
 function handleSort(e) {
     const th = e.target.closest("th[data-sort]");
@@ -304,8 +296,6 @@ function handleRemoveFromWhitelist(e) {
     });
 }
 
-
-
 function renderCookieTable() {
     log("Rendering cookie table for type:", currentType);
     chrome.storage.sync.get(["cookieWhitelist"], (data) => {
@@ -348,36 +338,34 @@ function renderFilteredTable(cookieList) {
 
     cookieList.forEach(cookie => {
         const tr = document.createElement("tr");
-        tr.classList.add("cookie-row", "expand-toggle");
+        tr.classList.add("expand-toggle", "table-active");
 
-        // Колонка с доменом
+        // Domain column
         const domainTd = document.createElement("td");
         domainTd.setAttribute("data-domain", cookie.domain);
-        domainTd.innerHTML = `<span class="arrow">▶</span><strong>${cookie.domain}</strong>`;
+        domainTd.innerHTML = `<span class="arrow me-1 text-muted">▶</span><strong>${cookie.domain}</strong>`;
         tr.appendChild(domainTd);
 
-        // Колонка с числом cookies
+        // Count column
         const countTd = document.createElement("td");
-        countTd.classList.add("count-cell");
+        countTd.className = "text-center";
         countTd.textContent = cookie.count;
         tr.appendChild(countTd);
 
-        // Колонка с действиями
+        // Actions column
         const actionsTd = document.createElement("td");
-        actionsTd.classList.add("actions-cell");
+        actionsTd.className = "text-center";
         const actionsSpan = document.createElement("span");
-        actionsSpan.className = "cookie-actions";
+        actionsSpan.className = "d-flex gap-1 justify-content-center";
 
-        // Кнопка whitelist
         const whitelistBtn = document.createElement("button");
-        whitelistBtn.className = "whitelist-btn";
+        whitelistBtn.className = "btn btn-outline-success btn-sm py-0 px-1 whitelist-btn";
         whitelistBtn.textContent = "✅";
         whitelistBtn.dataset.domain = cookie.domain;
         actionsSpan.appendChild(whitelistBtn);
 
-        // Кнопка delete
         const deleteBtn = document.createElement("button");
-        deleteBtn.className = "delete-btn";
+        deleteBtn.className = "btn btn-outline-danger btn-sm py-0 px-1 delete-btn";
         deleteBtn.textContent = "🗑";
         deleteBtn.dataset.domain = cookie.domain;
         actionsSpan.appendChild(deleteBtn);
@@ -387,49 +375,26 @@ function renderFilteredTable(cookieList) {
 
         tbody.appendChild(tr);
 
-        // Создаём скрытую строку с подробностями
+        // ⬇ Hidden expandable row for cookie details
         const detailTr = document.createElement("tr");
-        detailTr.classList.add("cookie-details");
+        detailTr.className = "collapse bg-white";
         detailTr.setAttribute("data-domain", cookie.domain);
 
         const detailTd = document.createElement("td");
         detailTd.setAttribute("colspan", "3");
-
-        if (cookie.cookies) {
-            cookie.cookies.forEach(c => {
-                const item = document.createElement("div");
-                item.className = "cookie-item";
-
-                const valueDiv = document.createElement("div");
-                valueDiv.innerHTML = `<strong>${c.name}</strong> = ${c.value}`;
-                item.appendChild(valueDiv);
-
-                const metaDiv = document.createElement("div");
-                metaDiv.className = "cookie-meta";
-                metaDiv.innerHTML = `
-                    <strong>${c.domain}</strong> | Path: ${c.path}, Secure: ${c.secure}, HttpOnly: ${c.httpOnly}
-                    <span class="cookie-actions-inline">
-                        <button class="whitelist-single-btn" data-name="${c.name}" data-domain="${c.domain}">✅</button>
-                        <button class="delete-single-btn" data-name="${c.name}" data-domain="${c.domain}">🗑</button>
-                    </span>
-                `;
-                item.appendChild(metaDiv);
-
-                detailTd.appendChild(item);
-            });
-        }
+        detailTd.innerHTML = `
+            <div class="text-muted small">
+                <div><strong>Type:</strong> ${cookie.type}</div>
+                <div><strong>Paths:</strong> ${cookie.pathList?.join(", ")}</div>
+                <div><strong>Count:</strong> ${cookie.count}</div>
+            </div>`;
 
         detailTr.appendChild(detailTd);
         tbody.appendChild(detailTr);
     });
+
     updateDeleteButton(cookieList);
-
 }
-
-
-
-
-
 
 function updateDeleteButton(cookies) {
     const panel = document.getElementById("cookieDeletePanel");
@@ -492,6 +457,21 @@ function updateDeleteButton(cookies) {
         });
     };
 }
+
+window.addEventListener("load", () => {
+    const cookieTabBtn = document.getElementById("nav-cookie-tab");
+    console.log("[COOKIE] waiting for tab element:", cookieTabBtn);
+    if (!cookieTabBtn) return;
+
+    cookieTabBtn.addEventListener("shown.bs.tab", () => {
+        console.log("[COOKIE] tab opened — triggering load");
+        const cookieBody = document.getElementById("cookieTableBody");
+        if (cookieBody && cookieBody.innerHTML.includes("Loading")) {
+            window.loadCookieTab?.();
+        }
+    });
+});
+
 
 
 

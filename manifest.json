@@ -23,8 +23,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "cookie.html",
-        "icon_bg.png"
+        "/img/icon_bg.png"
       ],
       "matches": [
         "<all_urls>"
@@ -32,7 +31,7 @@
     }
   ],
   "action": {
-    "default_popup": "popup.html",
-    "default_icon": "icon.png"
+    "default_popup": "/html/main.html",
+    "default_icon": "/img/icon.png"
   }
 }

@@ -12,7 +12,7 @@
  *
  * License: MIT
  */
-import {DEFAULT_CONFIG} from './config.js';
+import {DEFAULT_CONFIG} from '../config.js';
 
 document.addEventListener("DOMContentLoaded", () => {
     const suspendTimeInput = document.getElementById("suspendTime");
@@ -20,8 +20,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const clearExclusionsButton = document.getElementById("clearExclusions");
     const loadRecommendedButton = document.getElementById("loadRecommended");
     const excludedList = document.getElementById("excludedList");
-    const aboutButton = document.getElementById("aboutBtn");
-    const aboutModal = document.getElementById("aboutModal");
+    // const aboutButton = document.getElementById("aboutBtn");
+    // const aboutModal = document.getElementById("aboutModal");
     const closePopup = document.getElementById("closePopup");
     const errorMessage = document.getElementById("errorMessage");
     const freezeAllTabsButton = document.getElementById("freezeAllTabs");
@@ -87,22 +87,31 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 500);
     }
 
-    function updateExclusionList(excludedSites) {
-        excludedSites.sort();
-        excludedList.innerHTML = "";
-        excludedSites.forEach(site => {
-            let li = document.createElement("li");
-            li.textContent = site;
-            let removeButton = document.createElement("button");
-            removeButton.textContent = "❌";
-            removeButton.addEventListener("click", () => {
-                let newList = excludedSites.filter(s => s !== site);
-                saveExcludedSites(newList);
-            });
-            li.appendChild(removeButton);
-            excludedList.appendChild(li);
-        });
-    }
+function updateExclusionList(excludedSites) {
+  excludedSites.sort();
+  excludedList.innerHTML = "";
+  excludedSites.forEach(site => {
+    const li = document.createElement("li");
+    li.className = "list-group-item d-flex justify-content-between align-items-center px-2 py-1";
+
+    const text = document.createElement("span");
+    text.textContent = site;
+
+    const removeButton = document.createElement("button");
+    removeButton.textContent = "❌";
+    removeButton.className = "btn btn-sm btn-outline-danger py-0 px-1";
+    removeButton.style.fontSize = "12px";
+    removeButton.addEventListener("click", () => {
+      const newList = excludedSites.filter(s => s !== site);
+      saveExcludedSites(newList);
+    });
+
+    li.appendChild(text);
+    li.appendChild(removeButton);
+    excludedList.appendChild(li);
+  });
+}
+
 
     chrome.storage.sync.get(["suspendTime", "excludedSites"], (data) => {
         const suspendMs = data.suspendTime ?? DEFAULT_CONFIG.DEFAULT_SUSPEND_TIME;
@@ -172,19 +181,19 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    aboutButton.addEventListener("click", () => {
-        aboutModal.style.display = "block";
-    });
+    // aboutButton.addEventListener("click", () => {
+    //     aboutModal.style.display = "block";
+    // });
 
-    closePopup.addEventListener("click", () => {
-        aboutModal.style.display = "none";
-    });
+    // closePopup.addEventListener("click", () => {
+    //     aboutModal.style.display = "none";
+    // });
 
-    window.addEventListener("click", (event) => {
-        if (event.target === aboutModal) {
-            aboutModal.style.display = "none";
-        }
-    });
+    // window.addEventListener("click", (event) => {
+    //     if (event.target === aboutModal) {
+    //         aboutModal.style.display = "none";
+    //     }
+    // });
 
     freezeAllTabsButton.addEventListener("click", () => {
         chrome.storage.sync.get(["excludedSites"], (data) => {
@@ -204,7 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     const protocol = parsedUrl.protocol;
                     const hostname = parsedUrl.hostname;
 
-// Пропускаем запрещённые протоколы
+    // Пропускаем запрещённые протоколы
                     if (
                         DEFAULT_CONFIG.DISALLOWED_PROTOCOLS.includes(protocol) ||
                         !hostname
@@ -282,6 +291,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Reload cookies when switching to tab2
             if (button.dataset.tab === "tab2") {
+                window.loadCookieTab?.();
+            }
+        });
+    });
+    document.addEventListener("DOMContentLoaded", () => {
+        const cookieTabBtn = document.getElementById("nav-cookie-tab");
+        cookieTabBtn.addEventListener("shown.bs.tab", (e) => {
+            const cookieBody = document.getElementById("cookieTableBody");
+            if (cookieBody && cookieBody.innerHTML.includes("Loading")) {
                 window.loadCookieTab?.();
             }
         });
