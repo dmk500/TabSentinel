@@ -145,6 +145,11 @@ function updateTabCounters() {
     });
 }
 
+function shorten(str, limit = 50) {
+    if (!str || str.length <= limit) return str;
+    return str.slice(0, limit) + '...';
+}
+
 function renderCurrentTabCookies(rawCookies, host, embeddedHosts) {
     log("Rendering current tab cookies", {
         host,
@@ -192,6 +197,7 @@ function renderCurrentTabCookies(rawCookies, host, embeddedHosts) {
 
         allRows.forEach(group => {
             const isWhitelisted = whitelist.has(group.domain);
+
             const row = document.createElement("tr");
             row.classList.add("expand-toggle", "table-active");
             if (isWhitelisted) {
@@ -202,9 +208,8 @@ function renderCurrentTabCookies(rawCookies, host, embeddedHosts) {
 
             const label = group.thirdParty ? `<div class="small text-muted">Third-party</div>` : "";
 
-            // Создаём строку с доменом
             row.innerHTML = `
-                <td data-domain="${group.domain}">
+                <td class="text-start" data-domain="${group.domain}">
                     <span class="arrow me-1 text-muted">▶</span><strong>${group.domain}</strong>
                     ${label}
                 </td>
@@ -212,36 +217,147 @@ function renderCurrentTabCookies(rawCookies, host, embeddedHosts) {
                 <td class="text-center">
                     <div class="d-flex justify-content-center gap-1">
                         ${
-                isWhitelisted
-                    ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 delete-btn" data-domain="${group.domain}">🗑</button>`
-                    : `<button class="btn btn-outline-success btn-sm py-0 px-1 whitelist-btn" data-domain="${group.domain}">✅</button>
-                                   <button class="btn btn-outline-danger btn-sm py-0 px-1 delete-btn" data-domain="${group.domain}">🗑</button>`
-            }
+                            isWhitelisted
+                                ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 delete-btn" data-domain="${group.domain}" title="Delete all cookies">🗑</button>`
+                                : `<button class="btn btn-outline-success btn-sm py-0 px-1 whitelist-btn" data-domain="${group.domain}" title="Add to whitelist">✅</button>
+                                   <button class="btn btn-outline-danger btn-sm py-0 px-1 delete-btn" data-domain="${group.domain}" title="Delete all cookies">🗑</button>`
+                        }
                     </div>
                 </td>`;
             mainTbody.appendChild(row);
-            // Строка с деталями
+
             const detailRow = document.createElement("tr");
             detailRow.classList.add("collapse", "bg-white", "cookie-details");
             detailRow.dataset.domain = group.domain;
+
             detailRow.innerHTML = `
-                <td colspan="3">
-                    ${group.cookies.map(c => `
-                        <div class="border rounded p-2 mb-2 small bg-light">
-                            <div><strong>${c.name}</strong> = <code>${c.value}</code></div>
-                            <div class="text-muted">
-                                <strong>${c.domain}</strong> | Path: ${c.path}, Secure: ${c.secure}, HttpOnly: ${c.httpOnly}
-                            </div>
-                            <div class="mt-1 d-flex gap-1">
-                                <button class="btn btn-outline-success btn-sm py-0 px-1 whitelist-single-btn" data-name="${c.name}" data-domain="${c.domain}">✅</button>
-                                <button class="btn btn-outline-danger btn-sm py-0 px-1 delete-single-btn" data-name="${c.name}" data-domain="${c.domain}">🗑</button>
-                            </div>
-                        </div>
-                    `).join("")}
+                <td colspan="3" class="pt-2 pb-2">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tbody>
+                            ${group.cookies.map(c => `
+                                <tr>
+                                    <td class="align-top small text-start text-break" style="width: 100%;">
+                                        <strong>${c.domain}</strong> | Path: ${c.path}, Secure: ${c.secure}, HttpOnly: ${c.httpOnly}<br>
+                                        <strong>${c.name}</strong> = <code class="text-danger">${shorten(c.value)}</code>
+                                    </td>
+                                    <td class="text-end align-top" style="white-space: nowrap;">
+                                        ${
+                                            isWhitelisted ? "" : `
+                                                <button class="btn btn-outline-success btn-sm py-0 px-1 whitelist-single-btn" 
+                                                        data-name="${c.name}" data-domain="${c.domain}" 
+                                                        title="Add to whitelist">✅</button>
+                                            `
+                                        }
+                                        <button class="btn btn-outline-danger btn-sm py-0 px-1 delete-single-btn" 
+                                                data-name="${c.name}" data-domain="${c.domain}" 
+                                                title="Delete this cookie">🗑</button>
+                                    </td>
+                                </tr>
+                            `).join("")}
+                        </tbody>
+                    </table>
                 </td>`;
             mainTbody.appendChild(detailRow);
         });
     });
+}
+
+function renderFilteredTable(cookieList) {
+    log("Rendering filtered table, total domains:", cookieList.length);
+    const tbody = document.getElementById("cookieTableBody");
+    tbody.innerHTML = "";
+
+    cookieList.forEach(cookie => {
+        const tr = document.createElement("tr");
+        tr.classList.add("expand-toggle", "table-active");
+
+        const domainTd = document.createElement("td");
+        domainTd.setAttribute("data-domain", cookie.domain);
+        domainTd.className = "text-start";
+        domainTd.innerHTML = `<span class="arrow me-1 text-muted">▶</span><strong>${cookie.domain}</strong>`;
+        tr.appendChild(domainTd);
+
+        const countTd = document.createElement("td");
+        countTd.className = "text-center";
+        countTd.textContent = cookie.count;
+        tr.appendChild(countTd);
+
+        const actionsTd = document.createElement("td");
+        actionsTd.className = "text-center";
+        const actionsSpan = document.createElement("span");
+        actionsSpan.className = "d-flex gap-1 justify-content-center";
+
+        if (currentType === "whitelist") {
+            const removeBtn = document.createElement("button");
+            removeBtn.className = "btn btn-outline-danger btn-sm py-0 px-1 remove-whitelist-btn";
+            removeBtn.textContent = "↩️";
+            removeBtn.title = "Remove from whitelist";
+            removeBtn.dataset.domain = cookie.domain;
+            actionsSpan.appendChild(removeBtn);
+        } else {
+            const whitelistBtn = document.createElement("button");
+            whitelistBtn.className = "btn btn-outline-success btn-sm py-0 px-1 whitelist-btn";
+            whitelistBtn.textContent = "✅";
+            whitelistBtn.title = "Add to whitelist";
+            whitelistBtn.dataset.domain = cookie.domain;
+            actionsSpan.appendChild(whitelistBtn);
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.className = "btn btn-outline-danger btn-sm py-0 px-1 delete-btn";
+            deleteBtn.textContent = "🗑";
+            deleteBtn.title = "Delete all cookies";
+            deleteBtn.dataset.domain = cookie.domain;
+            actionsSpan.appendChild(deleteBtn);
+        }
+
+        actionsTd.appendChild(actionsSpan);
+        tr.appendChild(actionsTd);
+
+        tbody.appendChild(tr);
+
+        // Детали (вложенная таблица)
+        const detailTr = document.createElement("tr");
+        detailTr.className = "collapse bg-white cookie-details";
+        detailTr.dataset.domain = cookie.domain;
+
+        const detailTd = document.createElement("td");
+        detailTd.setAttribute("colspan", "3");
+        detailTd.className = "pt-2 pb-2";
+
+        detailTd.innerHTML = `
+            <table class="table table-sm table-borderless mb-0">
+                <tbody>
+                    ${(cookie.cookies || []).map(c => `
+                        <tr>
+                            <td class="align-top small text-start text-break" style="width: 100%;">
+                                <strong>${c.domain}</strong> | Path: ${c.path}, Secure: ${c.secure}, HttpOnly: ${c.httpOnly}<br>
+                                <strong>${c.name}</strong> = <code class="text-danger">${shorten(c.value)}</code>
+                            </td>
+                            <td class="text-end align-top" style="white-space: nowrap;">
+                                ${
+                                    currentType === "whitelist"
+                                        ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 remove-whitelist-btn" 
+                                                  data-name="${c.name}" data-domain="${c.domain}" 
+                                                  title="Remove from whitelist">↩️</button>`
+                                        : `
+                                            <button class="btn btn-outline-success btn-sm py-0 px-1 whitelist-single-btn" 
+                                                    data-name="${c.name}" data-domain="${c.domain}" 
+                                                    title="Add to whitelist">✅</button>
+                                            <button class="btn btn-outline-danger btn-sm py-0 px-1 delete-single-btn" 
+                                                    data-name="${c.name}" data-domain="${c.domain}" 
+                                                    title="Delete this cookie">🗑</button>
+                                          `
+                                }
+                            </td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>`;
+        detailTr.appendChild(detailTd);
+        tbody.appendChild(detailTr);
+    });
+
+    updateDeleteButton(cookieList);
 }
 
 function handleSort(e) {
@@ -311,14 +427,27 @@ function renderCookieTable() {
             if (!grouped[domain]) {
                 grouped[domain] = {
                     domain,
-                    count: c.count,
+                    count: 0,
                     name: "Multiple cookies",
                     type: c.type,
-                    pathList: [...(c.pathList || [])]
+                    pathList: [],
+                    cookies: []
                 };
-            } else {
-                grouped[domain].count += c.count;
             }
+            grouped[domain].count += c.count;
+            grouped[domain].pathList.push(...(c.pathList || []));
+
+// Генерируем поддельный список cookies вручную:
+            grouped[domain].cookies.push({
+                name: c.name || "cookie",
+                value: c.value || "",
+                domain: c.domain,
+                path: (c.pathList || [])[0] || "/",
+                secure: c.secure || false,
+                httpOnly: c.httpOnly || false
+            });
+
+
         });
 
         updateTabCounters();
@@ -329,71 +458,6 @@ function renderCookieTable() {
             renderFilteredTable(Object.values(grouped), tbody);
         }
     });
-}
-
-function renderFilteredTable(cookieList) {
-    log("Rendering filtered table, total domains:", cookieList.length);
-    const tbody = document.getElementById("cookieTableBody");
-    tbody.innerHTML = "";
-
-    cookieList.forEach(cookie => {
-        const tr = document.createElement("tr");
-        tr.classList.add("expand-toggle", "table-active");
-
-        // Domain column
-        const domainTd = document.createElement("td");
-        domainTd.setAttribute("data-domain", cookie.domain);
-        domainTd.innerHTML = `<span class="arrow me-1 text-muted">▶</span><strong>${cookie.domain}</strong>`;
-        tr.appendChild(domainTd);
-
-        // Count column
-        const countTd = document.createElement("td");
-        countTd.className = "text-center";
-        countTd.textContent = cookie.count;
-        tr.appendChild(countTd);
-
-        // Actions column
-        const actionsTd = document.createElement("td");
-        actionsTd.className = "text-center";
-        const actionsSpan = document.createElement("span");
-        actionsSpan.className = "d-flex gap-1 justify-content-center";
-
-        const whitelistBtn = document.createElement("button");
-        whitelistBtn.className = "btn btn-outline-success btn-sm py-0 px-1 whitelist-btn";
-        whitelistBtn.textContent = "✅";
-        whitelistBtn.dataset.domain = cookie.domain;
-        actionsSpan.appendChild(whitelistBtn);
-
-        const deleteBtn = document.createElement("button");
-        deleteBtn.className = "btn btn-outline-danger btn-sm py-0 px-1 delete-btn";
-        deleteBtn.textContent = "🗑";
-        deleteBtn.dataset.domain = cookie.domain;
-        actionsSpan.appendChild(deleteBtn);
-
-        actionsTd.appendChild(actionsSpan);
-        tr.appendChild(actionsTd);
-
-        tbody.appendChild(tr);
-
-        // ⬇ Hidden expandable row for cookie details
-        const detailTr = document.createElement("tr");
-        detailTr.className = "collapse bg-white";
-        detailTr.setAttribute("data-domain", cookie.domain);
-
-        const detailTd = document.createElement("td");
-        detailTd.setAttribute("colspan", "3");
-        detailTd.innerHTML = `
-            <div class="text-muted small">
-                <div><strong>Type:</strong> ${cookie.type}</div>
-                <div><strong>Paths:</strong> ${cookie.pathList?.join(", ")}</div>
-                <div><strong>Count:</strong> ${cookie.count}</div>
-            </div>`;
-
-        detailTr.appendChild(detailTd);
-        tbody.appendChild(detailTr);
-    });
-
-    updateDeleteButton(cookieList);
 }
 
 function updateDeleteButton(cookies) {
