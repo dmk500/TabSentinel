@@ -31,7 +31,16 @@
     }
   ],
   "action": {
-    "default_popup": "/html/main.html",
+    "default_popup": "main.html",
     "default_icon": "/img/icon.png"
+  },
+  "content_scripts": [
+  {
+    "matches": ["<all_urls>"],
+    "js": ["js/content-popupblocker.js"],
+    "run_at": "document_idle"
   }
+]
 }
+
+

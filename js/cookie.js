@@ -81,42 +81,26 @@ function loadAndClassifyCookies() {
         const url = new URL(tab.url);
         const host = url.hostname;
 
-        chrome.scripting.executeScript({
-            target: {tabId: tab.id},
-            func: () => {
-                const domains = new Set();
-                ['src', 'href', 'action'].forEach(attr => {
-                    document.querySelectorAll(`[${attr}]`).forEach(el => {
-                        try {
-                            const val = el.getAttribute(attr);
-                            const url = new URL(val, document.baseURI);
-                            if (url.hostname !== location.hostname) domains.add(url.hostname);
-                        } catch (_) {
-                        }
-                    });
-                });
-                if (performance.getEntriesByType) {
-                    performance.getEntriesByType("resource").forEach(entry => {
-                        try {
-                            const url = new URL(entry.name);
-                            if (url.hostname !== location.hostname) domains.add(url.hostname);
-                        } catch (_) {
-                        }
-                    });
-                }
-                return Array.from(domains);
-            }
-        }, (results) => {
-            const embeddedHosts = results?.[0]?.result || [];
+        const handleWithHosts = (embeddedHosts = []) => {
             chrome.cookies.getAll({}, (cookies) => {
-                const grouped = classifyCookies(cookies, [host]); // ✅
-                allGroupedCookies = grouped;                      // ✅
+                const grouped = classifyCookies(cookies, [host]);
+                allGroupedCookies = grouped;
                 renderCookieTable();
-                renderCurrentTabCookies(grouped, host, embeddedHosts); // ✅ ← теперь всё будет работать!
+                renderCurrentTabCookies(grouped, host, embeddedHosts);
             });
+        };
+
+        chrome.runtime.sendMessage({action: "getEmbeddedDomains", tabId: tab.id}, (response) => {
+            if (chrome.runtime.lastError || !response || response.error) {
+                console.warn("[COOKIE] embedded domains failed:", chrome.runtime.lastError || response?.error);
+                handleWithHosts([]); // fallback
+            } else {
+                handleWithHosts(response.embeddedHosts || []);
+            }
         });
     });
 }
+
 
 
 function domainMatches(cookieDomain, pageHost) {

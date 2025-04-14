@@ -13,8 +13,46 @@
  * License: MIT
  */
 import {DEFAULT_CONFIG} from '../config.js';
+import * as bootstrap from 'bootstrap';
+
 
 document.addEventListener("DOMContentLoaded", () => {
+    // ✅ ИНИЦИАЛИЗАЦИЯ ВСЕХ ВКЛАДОК
+    const triggerTabList = document.querySelectorAll('#nav-tab a');
+    triggerTabList.forEach(triggerEl => {
+        bootstrap.Tab.getOrCreateInstance(triggerEl);
+    });
+
+    // 🔍 Отладка вкладки Cookie
+    const cookieTabBtn = document.getElementById("nav-cookie-tab");
+       // const cookieTabBtn = document.getElementById("nav-cookie-tab");
+    if (cookieTabBtn) {
+        cookieTabBtn.addEventListener("shown.bs.tab", (e) => {
+            const cookieBody = document.getElementById("cookieTableBody");
+            if (cookieBody && cookieBody.innerHTML.includes("Loading")) {
+                window.loadCookieTab?.();
+            }
+        });
+    }
+    console.log("[DEBUG] Cookie tab element:", cookieTabBtn);
+    if (cookieTabBtn) {
+        cookieTabBtn.addEventListener("shown.bs.tab", (e) => {
+            const cookieBody = document.getElementById("cookieTableBody");
+            if (cookieBody && cookieBody.innerHTML.includes("Loading")) {
+                window.loadCookieTab?.();
+            }
+        });
+    }
+
+    // 🔍 Отладка вкладки Popup Blocker
+    const popupTabBtn = document.getElementById("nav-popupblocker-tab");
+    console.log("[DEBUG] Popup tab element:", popupTabBtn);
+    if (popupTabBtn) {
+        popupTabBtn.addEventListener("shown.bs.tab", (e) => {
+            console.log("[TAB] Popup Blocker opened");
+        });
+    }
+
     const suspendTimeInput = document.getElementById("suspendTime");
     const addCurrentTabButton = document.getElementById("addCurrentTab");
     const clearExclusionsButton = document.getElementById("clearExclusions");
@@ -28,11 +66,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const unfreezeAllTabsButton = document.getElementById("unfreezeAllTabs");
     const extensionToggle = document.getElementById("extensionToggle");
     const controlsContainer = document.getElementById("controlsContainer");
-    const tabButtons = document.querySelectorAll(".tab-button");
-    const tabContents = document.querySelectorAll(".tab-content");
+    // const tabButtons = document.querySelectorAll(".tab-button");
+    // const tabContents = document.querySelectorAll(".tab-content");
 
     suspendTimeInput.min = DEFAULT_CONFIG.MIN_SUSPEND_TIME_MINUTES;
     suspendTimeInput.max = DEFAULT_CONFIG.MAX_SUSPEND_TIME_MINUTES;
+
+    // Force-init all tab elements on load
+    // const triggerTabList = document.querySelectorAll('#nav-tab a');
+    // triggerTabList.forEach(triggerEl => {
+    //     bootstrap.Tab.getOrCreateInstance(triggerEl);
+    // });
+
 
     chrome.storage.sync.get(["extensionEnabled"], (data) => {
         const enabled = data.extensionEnabled !== false;
@@ -114,17 +159,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     chrome.storage.sync.get(["suspendTime", "excludedSites"], (data) => {
-        const suspendMs = data.suspendTime ?? DEFAULT_CONFIG.DEFAULT_SUSPEND_TIME;
-        suspendTimeInput.value = suspendMs / 60000;
-
+        let suspendMs = data.suspendTime;
         let excludedSites = data.excludedSites;
-        if (!Array.isArray(excludedSites) || excludedSites.length === 0) {
+
+        // Если ничего не установлено — подставим дефолты
+        if (typeof suspendMs !== "number") {
+            suspendMs = DEFAULT_CONFIG.DEFAULT_SUSPEND_TIME;
+            chrome.storage.sync.set({suspendTime: suspendMs});
+        }
+
+        if (!Array.isArray(excludedSites)) {
             excludedSites = [...DEFAULT_CONFIG.DEFAULT_EXCLUDED_SITES];
             chrome.storage.sync.set({excludedSites});
         }
 
+        suspendTimeInput.value = suspendMs / 60000;
         updateExclusionList(excludedSites);
     });
+
 
     suspendTimeInput.addEventListener("input", () => {
         let value = parseInt(suspendTimeInput.value);
@@ -180,20 +232,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
     });
-
-    // aboutButton.addEventListener("click", () => {
-    //     aboutModal.style.display = "block";
-    // });
-
-    // closePopup.addEventListener("click", () => {
-    //     aboutModal.style.display = "none";
-    // });
-
-    // window.addEventListener("click", (event) => {
-    //     if (event.target === aboutModal) {
-    //         aboutModal.style.display = "none";
-    //     }
-    // });
 
     freezeAllTabsButton.addEventListener("click", () => {
         chrome.storage.sync.get(["excludedSites"], (data) => {
@@ -280,30 +318,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
 
-    tabButtons.forEach(button => {
-        button.addEventListener("click", () => {
-            tabButtons.forEach(btn => btn.classList.remove("active"));
-            tabContents.forEach(content => content.classList.remove("active"));
 
-            button.classList.add("active");
-            const selectedTab = document.getElementById(button.dataset.tab);
-            selectedTab.classList.add("active");
 
-            // Reload cookies when switching to tab2
-            if (button.dataset.tab === "tab2") {
-                window.loadCookieTab?.();
-            }
-        });
-    });
-    document.addEventListener("DOMContentLoaded", () => {
-        const cookieTabBtn = document.getElementById("nav-cookie-tab");
-        cookieTabBtn.addEventListener("shown.bs.tab", (e) => {
-            const cookieBody = document.getElementById("cookieTableBody");
-            if (cookieBody && cookieBody.innerHTML.includes("Loading")) {
-                window.loadCookieTab?.();
-            }
-        });
-    });
 
     chrome.runtime.getManifest && (() => {
         const {version} = chrome.runtime.getManifest();
@@ -326,7 +342,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const tabMap = {
             "nav-home": "🏠 Home",
             "nav-suspender": "🛏️ Tab Suspender",
-            "nav-cookie": "🍪 Cookie Manager (Beta)",
+            "nav-cookie": "🍪 Cookie Manager",
+            "nav-popupblocker": "🛑 Popup Blocker",
             "nav-about": "ℹ️ About"
         };
 

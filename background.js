@@ -27,16 +27,17 @@ function logOnce(tabId, message) {
 
 
 // Create an alarm to periodically check tabs
+// Также запустить checkTabs() при старте
+chrome.runtime.onStartup.addListener(() => {
+    chrome.alarms.create("checkTabs", {periodInMinutes: 0.5});
+});
+
 chrome.runtime.onInstalled.addListener(() => {
     chrome.alarms.create("checkTabs", {periodInMinutes: 0.5});
 });
 
 // Allow `popup.js` to request the list of recommended sites
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === "getRecommendedSites") {
-        sendResponse({sites: DEFAULT_EXCLUDED_SITES});
-    }
-});
+
 
 // Validate if a URL can be suspended (must be http/https)
 function isValidURL(url) {
@@ -182,12 +183,54 @@ chrome.alarms.onAlarm.addListener(() => {
     });
 });
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === "getAllCookies") {
-        chrome.cookies.getAll({}, (cookies) => {
-            logOnce("COOKIES_POPUP", `[Info] Sending cookies to popup (${cookies.length})`);
-            sendResponse(cookies);
+    if (message.action === "getEmbeddedDomains") {
+        const tabId = message.tabId;
+        if (!tabId) {
+            sendResponse({error: "No tabId provided"});
+            return true;
+        }
+
+
+        chrome.scripting.executeScript({
+            target: {tabId: sender.tab.id},
+            func: () => {
+                const domains = new Set();
+                ['src', 'href', 'action'].forEach(attr => {
+                    document.querySelectorAll(`[${attr}]`).forEach(el => {
+                        try {
+                            const val = el.getAttribute(attr);
+                            const url = new URL(val, document.baseURI);
+                            if (url.hostname !== location.hostname) domains.add(url.hostname);
+                        } catch (_) {
+                        }
+                    });
+                });
+                if (performance.getEntriesByType) {
+                    performance.getEntriesByType("resource").forEach(entry => {
+                        try {
+                            const url = new URL(entry.name);
+                            if (url.hostname !== location.hostname) domains.add(url.hostname);
+                        } catch (_) {
+                        }
+                    });
+                }
+                return Array.from(domains);
+            }
+        }, (results) => {
+            const result = results?.[0]?.result || [];
+            sendResponse({embeddedHosts: result});
         });
-        return true; // keep message channel open
+
+        return true;
     }
 
+    if (message.action === "getAllCookies") {
+        chrome.cookies.getAll({}, (cookies) => {
+            sendResponse(cookies);
+        });
+        return true;
+    }
+
+    return false;
 });
+
