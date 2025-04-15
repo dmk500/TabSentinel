@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tab Sentinel Tab Suspender (Open Source)",
-  "version": "1.8",
+  "version": "1.9",
   "description": "Automatically suspends inactive tabs after a specified time. Basic Cookie Manager.",
   "permissions": [
     "tabs",
@@ -17,7 +17,7 @@
     "http://*/*"
   ],
   "background": {
-    "service_worker": "background.js",
+    "service_worker": "js/background.js",
     "type": "module"
   },
   "web_accessible_resources": [

@@ -1,5 +1,8 @@
-import {classifyCookies} from './cookieClassifier.js';
-import {DEFAULT_CONFIG} from '../config.js';
+// File: js/cookie.js
+// Description: Cookie Manager tab logic - loads, classifies, filters and manages cookies
+
+import { classifyCookies } from './cookieClassifier.js';
+import { DEFAULT_CONFIG } from './config.js';
 
 function log(...args) {
     if (DEFAULT_CONFIG.ENABLE_COOKIE_LOGS) {
@@ -12,9 +15,12 @@ let currentType = "essential";
 let currentSortField = "name";
 let sortAsc = true;
 
-// 👇 Добавим ленивую инициализацию
+// 👇 Lazy init flag to avoid double loading
 window.cookieTabInitialized = false;
 
+/**
+ * Entry point to load and attach cookie tab logic (called on first tab open)
+ */
 window.loadCookieTab = async function () {
     if (window.cookieTabInitialized) return;
     window.cookieTabInitialized = true;
@@ -100,8 +106,6 @@ function loadAndClassifyCookies() {
         });
     });
 }
-
-
 
 function domainMatches(cookieDomain, pageHost) {
     const clean = cookieDomain.replace(/^\./, "").toLowerCase();
@@ -249,7 +253,6 @@ function renderCurrentTabCookies(rawCookies, host, embeddedHosts) {
         });
     });
 }
-
 
 function renderFilteredTable(cookieList) {
     log("Rendering filtered table, total domains:", cookieList.length);
@@ -525,7 +528,6 @@ function addCookieToWhitelist(domain, name) {
     });
 }
 
-
 function addDomainToWhitelist(domain) {
     chrome.storage.sync.get(["cookieWhitelist"], (data) => {
         const list = new Set(data.cookieWhitelist || []);
@@ -557,7 +559,6 @@ function removeCookieFromWhitelist(domain, name) {
         });
     });
 }
-
 
 function deleteCookiesByDomain(domain) {
     chrome.cookies.getAll({domain}, (cookies) => {
@@ -594,21 +595,16 @@ function isWhitelisted(domain, name = null, whitelist = []) {
     return keys.has(normalize(domain));
 }
 
-
 window.addEventListener("load", () => {
     const cookieTabBtn = document.getElementById("nav-cookie-tab");
-    console.log("[COOKIE] waiting for tab element:", cookieTabBtn);
     if (!cookieTabBtn) return;
 
     cookieTabBtn.addEventListener("shown.bs.tab", () => {
-        console.log("[COOKIE] tab opened — triggering load");
         const cookieBody = document.getElementById("cookieTableBody");
         if (cookieBody && cookieBody.innerHTML.includes("Loading")) {
             window.loadCookieTab?.();
         }
     });
 });
-
-
 
 

@@ -29,7 +29,7 @@
             <td>Runs in background, manages suspension logic, inter-module coordination</td>
         </tr>
         <tr>
-            <td><code>popup.js</code></td>
+            <td><code>suspender.js</code></td>
             <td>UI controller</td>
             <td>Loads popup UI, connects tabs, controls state, handles toggles</td>
         </tr>
@@ -75,7 +75,7 @@
         <li>Processes messages like <code>getEmbeddedDomains</code></li>
         <li>Suspends tabs and injects overlays</li>
     </ul>
-    <h5><code>popup.js</code></h5>
+    <h5><code>suspender.js</code></h5>
     <ul>
         <li>Initializes tabs and interface controls</li>
         <li>Handles state updates and storage sync</li>
@@ -146,7 +146,7 @@
   popupblocker.js      ← popup tracking
 
 popup/
-  popup.js             ← tab UI controller
+  suspender.js             ← tab UI controller
   cookie.js            ← cookie tab handler
   popupblocker.js      ← toggle + UI
 

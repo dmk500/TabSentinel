@@ -7,7 +7,7 @@ export const DEFAULT_CONFIG = {
         "mail.google.com",
         "calendar.google.com",
         "google.com",
-        "youtube.com",
+        "www.youtube.com",
         "spotify.com",
         "netflix.com",
         "zoom.us",
@@ -21,5 +21,6 @@ export const DEFAULT_CONFIG = {
         "file:"
     ],
     ENABLE_SLEEP_LOGS: 0,     // 🔧 Suspender logs
-    ENABLE_COOKIE_LOGS: 1     // 🔧 Cookie logs
+    ENABLE_COOKIE_LOGS: 0,    // 🔧 Cookie logs
+    // ENABLE_POPUP_BLOCKER_LOGS: 1     // 🔧 Popup blocker logs
 };

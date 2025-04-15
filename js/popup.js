@@ -1,173 +1,73 @@
-/**
- * TabSentinel Tab Suspender - Chrome Extension
- * -----------------------------------------
- * File: popup.js
- * Author: www.llmlounge.com
- * Created: February 2025
- *
- * Description:
- * This script handles the popup UI interactions, allowing users to
- * configure suspend time, manage excluded sites, and view extension
- * information. Changes are automatically saved and synced via Chrome Storage.
- *
- * License: MIT
- */
-import {DEFAULT_CONFIG} from '../config.js';
-import * as bootstrap from 'bootstrap';
+// File: js/popup.js
+// Description: Controls the popup interface, tab switching, toggle UI and sends config updates to background
+
+import {DEFAULT_CONFIG} from './config.js';
 
 
 document.addEventListener("DOMContentLoaded", () => {
-    // ✅ ИНИЦИАЛИЗАЦИЯ ВСЕХ ВКЛАДОК
+    // ✅ Initialize all Bootstrap tab instances
+    const bootstrap = window.bootstrap;
     const triggerTabList = document.querySelectorAll('#nav-tab a');
     triggerTabList.forEach(triggerEl => {
         bootstrap.Tab.getOrCreateInstance(triggerEl);
     });
 
-    // 🔍 Отладка вкладки Cookie
-    const cookieTabBtn = document.getElementById("nav-cookie-tab");
-       // const cookieTabBtn = document.getElementById("nav-cookie-tab");
-    if (cookieTabBtn) {
-        cookieTabBtn.addEventListener("shown.bs.tab", (e) => {
-            const cookieBody = document.getElementById("cookieTableBody");
-            if (cookieBody && cookieBody.innerHTML.includes("Loading")) {
-                window.loadCookieTab?.();
-            }
-        });
-    }
-    console.log("[DEBUG] Cookie tab element:", cookieTabBtn);
-    if (cookieTabBtn) {
-        cookieTabBtn.addEventListener("shown.bs.tab", (e) => {
-            const cookieBody = document.getElementById("cookieTableBody");
-            if (cookieBody && cookieBody.innerHTML.includes("Loading")) {
-                window.loadCookieTab?.();
-            }
-        });
-    }
 
-    // 🔍 Отладка вкладки Popup Blocker
-    const popupTabBtn = document.getElementById("nav-popupblocker-tab");
-    console.log("[DEBUG] Popup tab element:", popupTabBtn);
-    if (popupTabBtn) {
-        popupTabBtn.addEventListener("shown.bs.tab", (e) => {
-            console.log("[TAB] Popup Blocker opened");
-        });
-    }
+    // ✅ Handle header title changes per tab
+    // const labelSpan = document.getElementById("currentTabLabel");
+    // const tabMap = {
+    //     "nav-home": "🏠 Home",
+    //     "nav-suspender": "🛏️ Tab Suspender",
+    //     "nav-cookie": "🍪 Cookie Manager",
+    //     "nav-popupblocker": "🛑 Popup Blocker",
+    //     "nav-about": "ℹ️ About"
+    // };
+    // const setTabLabel = (id) => {
+    //     const shortId = id.replace("-tab", "");
+    //     labelSpan.textContent = tabMap[shortId] || "";
+    // };
+    // const activeTab = document.querySelector(".nav-link.active")?.id;
+    // if (activeTab) setTabLabel(activeTab);
+    // document.querySelectorAll(".nav-link").forEach(link => {
+    //     link.addEventListener("shown.bs.tab", e => setTabLabel(e.target.id));
+    // });
 
+    // ✅ Suspender: Inputs & buttons
     const suspendTimeInput = document.getElementById("suspendTime");
+    const extensionToggle = document.getElementById("extensionToggle");
     const addCurrentTabButton = document.getElementById("addCurrentTab");
     const clearExclusionsButton = document.getElementById("clearExclusions");
     const loadRecommendedButton = document.getElementById("loadRecommended");
-    const excludedList = document.getElementById("excludedList");
-    // const aboutButton = document.getElementById("aboutBtn");
-    // const aboutModal = document.getElementById("aboutModal");
-    const closePopup = document.getElementById("closePopup");
-    const errorMessage = document.getElementById("errorMessage");
     const freezeAllTabsButton = document.getElementById("freezeAllTabs");
     const unfreezeAllTabsButton = document.getElementById("unfreezeAllTabs");
-    const extensionToggle = document.getElementById("extensionToggle");
+    const excludedList = document.getElementById("excludedList");
     const controlsContainer = document.getElementById("controlsContainer");
-    // const tabButtons = document.querySelectorAll(".tab-button");
-    // const tabContents = document.querySelectorAll(".tab-content");
+    const errorMessage = document.getElementById("errorMessage");
 
+    // ✅ Set min/max limits from config
     suspendTimeInput.min = DEFAULT_CONFIG.MIN_SUSPEND_TIME_MINUTES;
     suspendTimeInput.max = DEFAULT_CONFIG.MAX_SUSPEND_TIME_MINUTES;
 
-    // Force-init all tab elements on load
-    // const triggerTabList = document.querySelectorAll('#nav-tab a');
-    // triggerTabList.forEach(triggerEl => {
-    //     bootstrap.Tab.getOrCreateInstance(triggerEl);
-    // });
-
-
-    chrome.storage.sync.get(["extensionEnabled"], (data) => {
+    // ✅ Load extension state + suspend config
+    chrome.storage.sync.get(["extensionEnabled", "suspendTime", "excludedSites"], (data) => {
         const enabled = data.extensionEnabled !== false;
         extensionToggle.checked = enabled;
-        updateControlsState(enabled);
-    });
-
-    let saveTimeout;
-    extensionToggle.addEventListener("change", () => {
-        const enabled = extensionToggle.checked;
-        updateControlsState(enabled);
-        chrome.storage.sync.set({extensionEnabled: enabled});
-        if (!enabled) {
-            // 🔴 Shutdown: stop timer and defrost
-            chrome.alarms.clear("checkTabs");
-
-            chrome.tabs.query({windowType: "normal"}, (tabs) => {
-                tabs.forEach(tab => {
-                    chrome.scripting.executeScript({
-                        target: {tabId: tab.id},
-                        func: () => {
-                            const overlay = document.getElementById("suspend-overlay");
-                            if (overlay) {
-                                window.location.reload();
-                            }
-                        }
-                    });
-                });
-            });
-        } else {
-            // 🟢 Switching on: start the timer again
-            chrome.alarms.create("checkTabs", {periodInMinutes: 0.5});
+        const suspenderStatusValue = document.getElementById("suspenderStatusValue");
+        if (suspenderStatusValue) {
+            suspenderStatusValue.textContent = enabled ? "Enabled ✅" : "Disabled ⛔";
+            suspenderStatusValue.classList.toggle("text-success", enabled);
+            suspenderStatusValue.classList.toggle("text-danger", !enabled);
         }
-    });
 
-    function updateControlsState(enabled) {
-        if (enabled) {
-            controlsContainer.classList.remove("disabled");
-            controlsContainer.querySelectorAll("button").forEach(btn => btn.disabled = false);
-        } else {
-            controlsContainer.classList.add("disabled");
-            controlsContainer.querySelectorAll("button").forEach(btn => btn.disabled = true);
-        }
-    }
+        updateControlsState(enabled);
 
-    function saveExcludedSites(excludedSites) {
-        clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(() => {
-            chrome.storage.sync.set({excludedSites}, () => {
-                updateExclusionList(excludedSites);
-            });
-        }, 500);
-    }
-
-    function updateExclusionList(excludedSites) {
-        excludedSites.sort();
-        excludedList.innerHTML = "";
-        excludedSites.forEach(site => {
-            const li = document.createElement("li");
-            li.className = "list-group-item d-flex justify-content-between align-items-center px-2 py-1";
-
-            const text = document.createElement("span");
-            text.textContent = site;
-
-            const removeButton = document.createElement("button");
-            removeButton.textContent = "❌";
-            removeButton.className = "btn btn-sm btn-outline-danger py-0 px-1";
-            removeButton.style.fontSize = "12px";
-            removeButton.addEventListener("click", () => {
-                const newList = excludedSites.filter(s => s !== site);
-                saveExcludedSites(newList);
-            });
-
-            li.appendChild(text);
-            li.appendChild(removeButton);
-            excludedList.appendChild(li);
-        });
-    }
-
-
-    chrome.storage.sync.get(["suspendTime", "excludedSites"], (data) => {
-        let suspendMs = data.suspendTime;
-        let excludedSites = data.excludedSites;
-
-        // Если ничего не установлено — подставим дефолты
+        let suspendMs = data.suspendTime ?? DEFAULT_CONFIG.DEFAULT_SUSPEND_TIME;
         if (typeof suspendMs !== "number") {
             suspendMs = DEFAULT_CONFIG.DEFAULT_SUSPEND_TIME;
             chrome.storage.sync.set({suspendTime: suspendMs});
         }
 
+        let excludedSites = data.excludedSites ?? DEFAULT_CONFIG.DEFAULT_EXCLUDED_SITES;
         if (!Array.isArray(excludedSites)) {
             excludedSites = [...DEFAULT_CONFIG.DEFAULT_EXCLUDED_SITES];
             chrome.storage.sync.set({excludedSites});
@@ -177,7 +77,19 @@ document.addEventListener("DOMContentLoaded", () => {
         updateExclusionList(excludedSites);
     });
 
+    // ✅ Toggle enable/disable
+    extensionToggle.addEventListener("change", () => {
+        const enabled = extensionToggle.checked;
+        updateControlsState(enabled);
+        chrome.storage.sync.set({extensionEnabled: enabled});
 
+        // Notify background to (re)start suspension logic
+        chrome.runtime.sendMessage({
+            action: enabled ? "suspend:enable" : "suspend:disable"
+        });
+    });
+
+    // ✅ Suspend time change
     suspendTimeInput.addEventListener("input", () => {
         let value = parseInt(suspendTimeInput.value);
         if (
@@ -187,186 +99,303 @@ document.addEventListener("DOMContentLoaded", () => {
         ) {
             value = DEFAULT_CONFIG.DEFAULT_SUSPEND_TIME / 60000;
         }
-        chrome.storage.sync.set({suspendTime: value * 60000}, () => {
-            console.log("Auto-saved suspend time:", value, "minutes");
-        });
+        chrome.storage.sync.set({suspendTime: value * 60000});
     });
+
+    // ✅ Manage exclusions
+    const saveExcludedSites = (sites) => {
+        chrome.storage.sync.set({excludedSites: sites});
+        updateExclusionList(sites);
+    };
+
+    const updateExclusionList = (sites) => {
+        excludedList.innerHTML = "";
+        sites.sort().forEach(site => {
+            const li = document.createElement("li");
+            li.className = "list-group-item d-flex justify-content-between align-items-center px-2 py-1";
+
+            const text = document.createElement("span");
+            text.textContent = site;
+
+            const removeBtn = document.createElement("button");
+            removeBtn.className = "btn btn-sm btn-outline-danger py-0 px-1";
+            removeBtn.textContent = "❌";
+            removeBtn.onclick = () => {
+                const updated = sites.filter(s => s !== site);
+                saveExcludedSites(updated);
+            };
+
+            li.appendChild(text);
+            li.appendChild(removeBtn);
+            excludedList.appendChild(li);
+        });
+    };
 
     addCurrentTabButton.addEventListener("click", () => {
         chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-            if (tabs.length === 0 || !tabs[0].url) return;
-            let url = new URL(tabs[0].url).hostname;
-
+            if (!tabs[0]?.url) return;
+            const host = new URL(tabs[0].url).hostname;
             chrome.storage.sync.get(["excludedSites"], (data) => {
-                let excludedSites = data.excludedSites || [];
-                if (!excludedSites.includes(url)) {
-                    excludedSites.push(url);
-                    saveExcludedSites(excludedSites);
+                const sites = data.excludedSites || [];
+                if (!sites.includes(host)) {
+                    sites.push(host);
+                    saveExcludedSites(sites);
                 }
             });
         });
     });
 
     clearExclusionsButton.addEventListener("click", () => {
-        chrome.storage.sync.set({excludedSites: []}, () => {
-            updateExclusionList([]);
-        });
+        saveExcludedSites([]);
     });
 
     loadRecommendedButton.addEventListener("click", () => {
         chrome.runtime.sendMessage({action: "getRecommendedSites"}, (response) => {
-            if (!response || !response.sites) {
+            if (!response?.sites) {
                 errorMessage.textContent = "Error loading recommended sites.";
                 return;
             }
 
             chrome.storage.sync.get(["excludedSites"], (data) => {
-                let excludedSites = data.excludedSites || [];
-                response.sites.forEach(site => {
-                    if (!excludedSites.includes(site)) {
-                        excludedSites.push(site);
-                    }
-                });
-
-                saveExcludedSites(excludedSites);
+                const existing = data.excludedSites || [];
+                const merged = Array.from(new Set([...existing, ...response.sites]));
+                saveExcludedSites(merged);
             });
         });
     });
 
+    // ✅ Manual freeze/unfreeze for all tabs
     freezeAllTabsButton.addEventListener("click", () => {
-        chrome.storage.sync.get(["excludedSites"], (data) => {
-            const excludedSites = data.excludedSites || [];
-            const iconUrl = chrome.runtime.getURL('icon_bg.png');
-            chrome.tabs.query({windowType: "normal"}, (tabs) => {
-                tabs.forEach(tab => {
-                    if (!tab || !tab.id || !tab.url) return;
-
-                    let parsedUrl;
-                    try {
-                        parsedUrl = new URL(tab.url);
-                    } catch (e) {
-                        return; // некорректный URL
-                    }
-
-                    const protocol = parsedUrl.protocol;
-                    const hostname = parsedUrl.hostname;
-
-                    // Пропускаем запрещённые протоколы
-                    if (
-                        DEFAULT_CONFIG.DISALLOWED_PROTOCOLS.includes(protocol) ||
-                        !hostname
-                    ) {
-                        console.warn("Skipping unsupported tab:", tab.url);
-                        return;
-                    }
-
-
-                    const url = parsedUrl.hostname;
-                    // 🛠️ Skip active or excluded tabs
-                    if (tab.active || excludedSites.includes(url)) return;
-
-
-                    chrome.scripting.executeScript({
-                        target: {tabId: tab.id},
-                        func: (iconUrl) => {
-                            if (!document.getElementById("suspend-overlay")) {
-                                document.body.innerHTML = `
-                        <div id="suspend-overlay" style="
-                            position: fixed;
-                            top: 0; left: 0; width: 100%; height: 100%;
-                            background: rgba(0, 0, 0, 0.5);
-                            display: flex; align-items: center; justify-content: center;
-                            flex-direction: column;
-                            font-family: Arial, sans-serif;
-                            text-align: center;
-                            color: white;">
-                            <img id="ts-logo" alt="Tab Sentinel Logo" style="width: 240px; height: auto; margin-bottom: 20px;">
-                            <p>Click to reactivate</p>
-                        </div>
-                    `;
-                                document.getElementById("ts-logo").src = iconUrl;
-
-                                if (!document.title.includes("💤")) {
-                                    document.title = "💤 " + document.title.replace(/💤/g, "").trim();
-                                }
-                                document.getElementById("suspend-overlay").addEventListener("click", () => {
-                                    window.location.reload();
-                                });
-                            }
-                        },
-                        args: [chrome.runtime.getURL("icon_bg.png")]
-                    });
-                });
-            });
-        });
+        chrome.runtime.sendMessage({action: "freezeAll"});
     });
 
     unfreezeAllTabsButton.addEventListener("click", () => {
-        chrome.tabs.query({windowType: "normal"}, (tabs) => {
-            tabs.forEach(tab => {
-                chrome.scripting.executeScript({
-                    target: {tabId: tab.id},
-                    func: () => {
-                        const overlay = document.getElementById("suspend-overlay");
-                        if (overlay) {
-                            window.location.reload();
-                        }
-                    }
-                });
+        chrome.runtime.sendMessage({action: "unfreezeAll"});
+    });
+    const forceCheckButton = document.getElementById("forceCheck");
+
+    if (forceCheckButton) {
+        forceCheckButton.addEventListener("click", () => {
+            chrome.runtime.sendMessage({action: "suspend:forceCheck"}, (response) => {
+                console.log("[FORCE CHECK]", response);
             });
+        });
+    }
+
+
+    function updateControlsState(enabled) {
+        controlsContainer.classList.toggle("disabled", !enabled);
+        controlsContainer.querySelectorAll("button").forEach(btn => {
+            btn.disabled = !enabled;
+        });
+    }
+
+    // ✅ Load version info
+    const {version} = chrome.runtime.getManifest();
+    const titleEl = document.getElementById("extensionTitle");
+    const nameSpan = titleEl?.querySelector("span:first-child");
+    if (nameSpan && version) {
+        nameSpan.textContent = `Tab Sentinel v${version}`;
+    }
+    // ✅ Show current active tab label (right side of header)
+    const labelSpan = document.getElementById("currentTabLabel");
+
+    const tabMap = {
+        "nav-home": "🏠 Home",
+        "nav-suspender": "🛏️ Suspender",
+        "nav-cookie": "🍪 Cookie Manager",
+        "nav-popupblocker": "🛑 Popup Blocker",
+        "nav-about": "ℹ️ About"
+    };
+
+    const setTabLabel = (id) => {
+        const shortId = id.replace("-tab", "");
+        labelSpan.textContent = tabMap[shortId] || "";
+    };
+
+// Init current label
+    const activeTab = document.querySelector(".nav-link.active")?.id;
+    if (activeTab) setTabLabel(activeTab);
+
+// Update label on tab switch
+    let cookieTabInitialized = false;
+    let popupBlockerInitialized = false;
+
+    let cookieTabLoaded = false;
+
+    document.querySelectorAll(".nav-link").forEach(link => {
+        link.addEventListener("shown.bs.tab", e => {
+            const id = e.target.id;
+
+            if (id === "nav-cookie-tab" && typeof window.loadCookieTab === "function" && !cookieTabLoaded) {
+                cookieTabLoaded = true;
+                window.loadCookieTab();
+            }
+
+            if (id === "nav-popupblocker-tab" && typeof window.initPopupBlockerTab === "function") {
+                window.initPopupBlockerTab();
+            }
+
+            if (id === "nav-suspender-tab" && !window.suspenderTabInitialized) {
+                window.suspenderTabInitialized = true;
+                initSuspenderTab();
+            }
         });
     });
 
 
-
-
-
-    chrome.runtime.getManifest && (() => {
-        const {version} = chrome.runtime.getManifest();
-        const titleEl = document.getElementById("extensionTitle");
-        if (titleEl && version) {
-            const nameSpan = titleEl.querySelector("span:first-child");
-            nameSpan.textContent += ` v${version}`;
+    document.getElementById("nav-suspender-tab")?.addEventListener("shown.bs.tab", () => {
+        if (!window.suspenderTabInitialized) {
+            window.suspenderTabInitialized = true;
+            initSuspenderTab(); // 👈 новая функция с логикой инициализации
         }
-    })();
-// Обновить версию и вкладку в заголовке
-    (function updateHeader() {
-        const {version} = chrome.runtime.getManifest?.() || {};
-        const titleEl = document.getElementById("extensionTitle");
-        const nameSpan = titleEl?.querySelector("span:first-child");
-        if (nameSpan && version) {
-            nameSpan.textContent = `Tab Sentinel v${version}`;
-        }
+    });
 
-        const labelSpan = document.getElementById("currentTabLabel");
-        const tabMap = {
-            "nav-home": "🏠 Home",
-            "nav-suspender": "🛏️ Tab Suspender",
-            "nav-cookie": "🍪 Cookie Manager",
-            "nav-popupblocker": "🛑 Popup Blocker",
-            "nav-about": "ℹ️ About"
-        };
+    function initSuspenderTab() {
+        const suspendTimeInput = document.getElementById("suspendTime");
+        const extensionToggle = document.getElementById("extensionToggle");
+        const addCurrentTabButton = document.getElementById("addCurrentTab");
+        const clearExclusionsButton = document.getElementById("clearExclusions");
+        const loadRecommendedButton = document.getElementById("loadRecommended");
+        const freezeAllTabsButton = document.getElementById("freezeAllTabs");
+        const unfreezeAllTabsButton = document.getElementById("unfreezeAllTabs");
+        const excludedList = document.getElementById("excludedList");
+        const controlsContainer = document.getElementById("controlsContainer");
+        const errorMessage = document.getElementById("errorMessage");
+        const forceCheckButton = document.getElementById("forceCheck");
 
-        const setTabLabel = (id) => {
-            const shortId = id.replace("-tab", "");
-            labelSpan.textContent = tabMap[shortId] || "";
-        };
+        suspendTimeInput.min = DEFAULT_CONFIG.MIN_SUSPEND_TIME_MINUTES;
+        suspendTimeInput.max = DEFAULT_CONFIG.MAX_SUSPEND_TIME_MINUTES;
 
-        // начальная вкладка
-        const activeTab = document.querySelector(".nav-link.active")?.id;
-        if (activeTab) setTabLabel(activeTab);
+        chrome.storage.sync.get(["extensionEnabled", "suspendTime", "excludedSites"], (data) => {
+            const enabled = data.extensionEnabled !== false;
+            extensionToggle.checked = enabled;
+            const suspenderStatusValue = document.getElementById("suspenderStatusValue");
+            if (suspenderStatusValue) {
+                suspenderStatusValue.textContent = enabled ? "Enabled ✅" : "Disabled ⛔";
+                suspenderStatusValue.classList.toggle("text-success", enabled);
+                suspenderStatusValue.classList.toggle("text-danger", !enabled);
+            }
 
-        // следим за переключением
-        document.querySelectorAll(".nav-link").forEach(link => {
-            link.addEventListener("shown.bs.tab", (e) => {
-                setTabLabel(e.target.id);
+            updateControlsState(enabled);
+
+            let suspendMs = data.suspendTime ?? DEFAULT_CONFIG.DEFAULT_SUSPEND_TIME;
+            if (typeof suspendMs !== "number") {
+                suspendMs = DEFAULT_CONFIG.DEFAULT_SUSPEND_TIME;
+                chrome.storage.sync.set({suspendTime: suspendMs});
+            }
+
+            let excludedSites = data.excludedSites ?? DEFAULT_CONFIG.DEFAULT_EXCLUDED_SITES;
+            if (!Array.isArray(excludedSites)) {
+                excludedSites = [...DEFAULT_CONFIG.DEFAULT_EXCLUDED_SITES];
+                chrome.storage.sync.set({excludedSites});
+            }
+
+            suspendTimeInput.value = suspendMs / 60000;
+            updateExclusionList(excludedSites);
+        });
+
+        extensionToggle.addEventListener("change", () => {
+            const enabled = extensionToggle.checked;
+            updateControlsState(enabled);
+            chrome.storage.sync.set({extensionEnabled: enabled});
+            chrome.runtime.sendMessage({
+                action: enabled ? "suspend:enable" : "suspend:disable"
             });
         });
-    })();
+
+        suspendTimeInput.addEventListener("input", () => {
+            let value = parseInt(suspendTimeInput.value);
+            if (
+                isNaN(value) ||
+                value < DEFAULT_CONFIG.MIN_SUSPEND_TIME_MINUTES ||
+                value > DEFAULT_CONFIG.MAX_SUSPEND_TIME_MINUTES
+            ) {
+                value = DEFAULT_CONFIG.DEFAULT_SUSPEND_TIME / 60000;
+            }
+            chrome.storage.sync.set({suspendTime: value * 60000});
+        });
+
+        const saveExcludedSites = (sites) => {
+            chrome.storage.sync.set({excludedSites: sites});
+            updateExclusionList(sites);
+        };
+
+        const updateExclusionList = (sites) => {
+            excludedList.innerHTML = "";
+            sites.sort().forEach(site => {
+                const li = document.createElement("li");
+                li.className = "list-group-item d-flex justify-content-between align-items-center px-2 py-1";
+                const text = document.createElement("span");
+                text.textContent = site;
+                const removeBtn = document.createElement("button");
+                removeBtn.className = "btn btn-sm btn-outline-danger py-0 px-1";
+                removeBtn.textContent = "❌";
+                removeBtn.onclick = () => {
+                    const updated = sites.filter(s => s !== site);
+                    saveExcludedSites(updated);
+                };
+                li.appendChild(text);
+                li.appendChild(removeBtn);
+                excludedList.appendChild(li);
+            });
+        };
+
+        addCurrentTabButton.addEventListener("click", () => {
+            chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+                if (!tabs[0]?.url) return;
+                const host = new URL(tabs[0].url).hostname;
+                chrome.storage.sync.get(["excludedSites"], (data) => {
+                    const sites = data.excludedSites || [];
+                    if (!sites.includes(host)) {
+                        sites.push(host);
+                        saveExcludedSites(sites);
+                    }
+                });
+            });
+        });
+
+        clearExclusionsButton.addEventListener("click", () => {
+            saveExcludedSites([]);
+        });
+
+        loadRecommendedButton.addEventListener("click", () => {
+            chrome.runtime.sendMessage({action: "getRecommendedSites"}, (response) => {
+                if (!response?.sites) {
+                    errorMessage.textContent = "Error loading recommended sites.";
+                    return;
+                }
+
+                chrome.storage.sync.get(["excludedSites"], (data) => {
+                    const existing = data.excludedSites || [];
+                    const merged = Array.from(new Set([...existing, ...response.sites]));
+                    saveExcludedSites(merged);
+                });
+            });
+        });
+
+        freezeAllTabsButton.addEventListener("click", () => {
+            chrome.runtime.sendMessage({action: "freezeAll"});
+        });
+
+        unfreezeAllTabsButton.addEventListener("click", () => {
+            chrome.runtime.sendMessage({action: "unfreezeAll"});
+        });
+
+        if (forceCheckButton) {
+            forceCheckButton.addEventListener("click", () => {
+                chrome.runtime.sendMessage({action: "suspend:forceCheck"}, (response) => {
+                    console.log("[FORCE CHECK]", response);
+                });
+            });
+        }
+
+        function updateControlsState(enabled) {
+            controlsContainer.classList.toggle("disabled", !enabled);
+            controlsContainer.querySelectorAll("button").forEach(btn => {
+                btn.disabled = !enabled;
+            });
+        }
+    }
 
 });
-
-
-
-
-

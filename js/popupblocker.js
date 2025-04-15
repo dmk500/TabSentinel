@@ -1,5 +1,5 @@
-// File: popupblocker.js
-// Description: Handles popup blocking logic and UI state for the Popup Blocker tab.
+// File: js/popupblocker.js
+// Description: Handles the Popup Blocker tab logic inside the popup.html
 
 const STORAGE_KEYS = {
     ENABLED: "popupBlockerEnabled",
@@ -10,12 +10,15 @@ let popupBlockedThisSession = 0;
 
 document.addEventListener("DOMContentLoaded", initPopupBlockerTab);
 
+/**
+ * Initializes the Popup Blocker tab: loads saved toggle state and blocked stats
+ */
 function initPopupBlockerTab() {
     const toggle = document.getElementById("popupBlockerToggle");
     const currentCount = document.getElementById("popupBlockedCurrent");
     const totalCount = document.getElementById("popupBlockedTotal");
 
-    // Read state or default to enabled
+    // Load stored state or fallback to enabled=true
     chrome.storage.sync.get([STORAGE_KEYS.ENABLED, STORAGE_KEYS.TOTAL_BLOCKED], (data) => {
         const enabled = data[STORAGE_KEYS.ENABLED] !== false;
         toggle.checked = enabled;
@@ -26,10 +29,10 @@ function initPopupBlockerTab() {
         }
     });
 
-    // Toggle switch listener
+    // Toggle listener to enable/disable popup blocking
     toggle.addEventListener("change", () => {
         const enabled = toggle.checked;
-        chrome.storage.sync.set({[STORAGE_KEYS.ENABLED]: enabled});
+        chrome.storage.sync.set({ [STORAGE_KEYS.ENABLED]: enabled });
         if (enabled) {
             startPopupBlocker(currentCount, totalCount);
         } else {
@@ -40,26 +43,31 @@ function initPopupBlockerTab() {
 
 let observer = null;
 
+/**
+ * Starts DOM MutationObserver to detect and remove popups inside the popup UI
+ */
 function startPopupBlocker(currentEl, totalEl) {
-    // Observe DOM mutations
     observer = new MutationObserver(() => {
         const blocked = removeSuspiciousPopups();
         if (blocked > 0) {
             popupBlockedThisSession += blocked;
             currentEl.textContent = popupBlockedThisSession;
 
-            // Update total
+            // Update total in chrome.storage
             chrome.storage.sync.get(STORAGE_KEYS.TOTAL_BLOCKED, (data) => {
                 const total = (data[STORAGE_KEYS.TOTAL_BLOCKED] || 0) + blocked;
-                chrome.storage.sync.set({[STORAGE_KEYS.TOTAL_BLOCKED]: total});
+                chrome.storage.sync.set({ [STORAGE_KEYS.TOTAL_BLOCKED]: total });
                 totalEl.textContent = total;
             });
         }
     });
 
-    observer.observe(document.body, {childList: true, subtree: true});
+    observer.observe(document.body, { childList: true, subtree: true });
 }
 
+/**
+ * Stops the MutationObserver
+ */
 function stopPopupBlocker() {
     if (observer) {
         observer.disconnect();
@@ -67,7 +75,10 @@ function stopPopupBlocker() {
     }
 }
 
-// Removes popups matching heuristics and returns how many were removed
+/**
+ * Removes common popup banners (cookie notices, overlays, consent modals)
+ * @returns {number} - number of elements removed
+ */
 function removeSuspiciousPopups() {
     const selectors = [
         "[id*='cookie']",
@@ -91,6 +102,11 @@ function removeSuspiciousPopups() {
     return count;
 }
 
+/**
+ * Checks if an element is visible in the DOM
+ * @param {HTMLElement} el
+ * @returns {boolean}
+ */
 function isVisible(el) {
     return el.offsetWidth > 0 && el.offsetHeight > 0;
 }
